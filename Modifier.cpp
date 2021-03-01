@@ -16,10 +16,11 @@ Modifier::~Modifier() {
 }
 
 void Modifier::paint (juce::Graphics& g) {
- 
+    g.setColour(juce::Colour(100, 100, 100));
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), 20.f);
 }
 
 
 void Modifier::resized() {
- 
+    
 }

@@ -32,6 +32,9 @@ MainComponent::MainComponent()
     
     loadStateButton.setButtonText("Load state");
     loadStateButton.onClick = [this] { loadState(); };
+    
+    modifierAddButton.setButtonText("Add modifier");
+    modifierAddButton.onClick = [this] { addModifier(); };
 
     samplesViewport.setViewedComponent(&samplesComponent, false);
     modifiersViewport.setViewedComponent(&modifiersComponent, false);
@@ -47,8 +50,9 @@ MainComponent::MainComponent()
     addAndMakeVisible(resetBeatButton);
     addAndMakeVisible(saveStateButton);
     addAndMakeVisible(loadStateButton);
+    addAndMakeVisible(modifierAddButton);
     addAndMakeVisible(samplesViewport);
-    addAndMakeVisible(modifiersComponent);
+    addAndMakeVisible(modifiersViewport);
     
     formatManager.registerBasicFormats();
     
@@ -234,6 +238,15 @@ void MainComponent::addSample() {
 
 }
 
+void MainComponent::addModifier() {
+    Modifier *modifier = new Modifier();
+    modifiers.push_back(modifier);
+    
+    modifiersComponent.addAndMakeVisible(modifier);
+    
+    resized();
+
+}
 
 // TODO: make wave its on separate class
 void MainComponent::getWaveValue(float &outLeft, float &outRight) {
@@ -340,6 +353,7 @@ void MainComponent::releaseResources()
 
     // For more details, see the help for AudioProcessor::releaseResources()
     resetSamples();
+    resetModifiers();
 }
 
 //==============================================================================
@@ -352,6 +366,9 @@ void MainComponent::paint (juce::Graphics& g)
     
     g.setColour(juce::Colour(70, 70, 70));
     g.fillRect(0, 150, 800, 200); // fill samples area
+    
+    g.setColour(juce::Colour(70, 70, 70));
+    g.fillRect(0, 400, 800, 200); // fill modifiers area
     
     // You can add your drawing code here!
     curBeatLabel.setText(juce::String((double)roundBeat/(std::pow(10, precision))), juce::dontSendNotification);
@@ -377,6 +394,7 @@ void MainComponent::resized()
     resetBeatButton.setBounds(80, 120, 60, 20);
     saveStateButton.setBounds(150, 120, 60, 20);
     loadStateButton.setBounds(220, 120, 60, 20);
+    modifierAddButton.setBounds(290, 120, 60, 20);
     
     // samples
     
@@ -410,5 +428,7 @@ void MainComponent::resized()
         relativeY+=height;
     }
 
+    modifiersComponent.setBounds(0, 0, 800, relativeY);
+    
 }
 

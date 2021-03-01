@@ -29,6 +29,7 @@ public:
     void saveState();
     void loadState();
     void resetSamples();
+    void resetModifiers();
 
     //==============================================================================
     void paint (juce::Graphics& g) override;
@@ -40,6 +41,8 @@ private:
 
     void getWaveValue(float &outLeft, float &outRight);
     void updateWaveParams();
+    void addSample();
+    void addModifier();
 
     //==============================================================================
     
@@ -47,7 +50,6 @@ private:
     float volume = 0.5f; // 0 - 1
     
     long pow10(float input, int power);
-    void addSample();
     
     double curSampleRate = 0.0;
     float curBeat = 0.f;
@@ -78,11 +80,10 @@ private:
     juce::Label curBeatLabel;
     
     juce::TextButton sampleAddButton;
-    
     juce::TextButton resetBeatButton;
-    
     juce::TextButton saveStateButton;
     juce::TextButton loadStateButton;
+    juce::TextButton modifierAddButton;
     
     juce::AudioFormatManager formatManager;
     
