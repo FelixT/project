@@ -158,7 +158,7 @@ void Sample::setPath(std::string path) {
 }
 
 void Sample::browse() {
-    juce::FileChooser sampleChooser("Select a WAV file sample", {}, "*.wav");
+    juce::FileChooser sampleChooser("Select a sample", {}, formatManager->getWildcardForAllFormats());
     
     if(sampleChooser.browseForFileToOpen()) {
         juce::File file = sampleChooser.getResult();
@@ -247,6 +247,10 @@ void Sample::updateParams(float trackBpm, int precision, int numSamples) {
 
 void Sample::setLabel(std::string label) {
     sampleLabel.setText(label, juce::dontSendNotification);
+}
+
+juce::String Sample::getLabel() {
+    return sampleLabel.getText();
 }
 
 void Sample::setStart(double start) {

@@ -239,7 +239,7 @@ void MainComponent::addSample() {
 }
 
 void MainComponent::addModifier() {
-    Modifier *modifier = new Modifier();
+    Modifier *modifier = new Modifier(&samples);
     modifiers.push_back(modifier);
     
     modifiersComponent.addAndMakeVisible(modifier);
@@ -293,6 +293,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             sample->updateParams((float)bpmSlider.getValue(), precision, bufferToFill.numSamples);
         }
     }
+    
+    // MODIFIERS
+    for(int i = 0; i < modifiers.size(); i++) {
+        Modifier *modifier = modifiers.at(i);
+        modifier->updateParams(precision);
+    }
         
     
     for(int sampleOffset = 0; sampleOffset < bufferToFill.numSamples; sampleOffset++) {
@@ -303,6 +309,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         
         float outLeft = 0.f;
         float outRight = 0.f;
+        
+        // perform any modifier actions
+        for(int i = 0; i < modifiers.size(); i++) {
+            Modifier *modifier = modifiers.at(i);
+            modifier->tick(roundBeat, prevBeat);
+        }
         
         // wave
         getWaveValue(outLeft, outRight);
@@ -368,7 +380,7 @@ void MainComponent::paint (juce::Graphics& g)
     g.fillRect(0, 150, 800, 200); // fill samples area
     
     g.setColour(juce::Colour(70, 70, 70));
-    g.fillRect(0, 400, 800, 200); // fill modifiers area
+    g.fillRect(0, 375, 800, 200); // fill modifiers area
     
     // You can add your drawing code here!
     curBeatLabel.setText(juce::String((double)roundBeat/(std::pow(10, precision))), juce::dontSendNotification);
@@ -401,15 +413,17 @@ void MainComponent::resized()
     samplesViewport.setBounds(0, 150, 800, 200);
     
     int relativeY = 0;
+    int margin = 10; // (bottom)
+
     for(int i = 0; i < samples.size(); i++) {
         if(samples[i]->isCollapsed()) {
             int height = 40;
-            samples[i]->setBounds(0, relativeY, 800, height-20);
+            samples[i]->setBounds(0, relativeY, 800, height-margin);
             relativeY+=height;
             
         } else {
             int height = 140;
-            samples[i]->setBounds(0, relativeY, 800, height-20);
+            samples[i]->setBounds(0, relativeY, 800, height-margin);
             relativeY+=height;
         }
     }
@@ -418,13 +432,13 @@ void MainComponent::resized()
     
     // modifiers
     
-    modifiersViewport.setBounds(0, 400, 800, 200);
+    modifiersViewport.setBounds(0, 375, 800, 200);
     
     relativeY = 0;
     
     for(int i = 0; i < modifiers.size(); i++) {
-        int height = 140;
-        modifiers[i]->setBounds(0, relativeY, 800, height-20);
+        int height = 100;
+        modifiers[i]->setBounds(0, relativeY, 800, height-margin);
         relativeY+=height;
     }
 

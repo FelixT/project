@@ -33,6 +33,8 @@ public:
     void setBpm(double bpm);
     bool isCollapsed();
     void setCollapsed(bool c);
+    juce::String getLabel();
+
     
     bool isLoaded = false;
 
@@ -67,10 +69,10 @@ private:
     float playbackRate = 0.f;
     float startPos = 0.f;
     float endPos = 0.f;
-    float interval = 0.f;
+    float interval = 1.f;
     float delay = 0.f;
     
-    long roundedInterval = 0;
+    long roundedInterval = 1;
     long roundedDelay = 0;
     
     const float *inLeftBuffer;
