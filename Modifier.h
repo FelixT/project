@@ -26,6 +26,10 @@ public:
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
+    void tickEuclidean(long roundedBeat, long prevBeat);
+    void tickRandom(long roundedBeat, long prevBeat);
+    void getParams();
+    void changeMode();
     
     enum modifierState {
         MODIFIER_IDLE,
@@ -34,7 +38,9 @@ private:
         MODIFIER_BPM
     };
     
+    juce::Label modifierSelectLabel;
     juce::ComboBox modifierSelect;
+    juce::Label modifierFunctionLabel;
     juce::ComboBox modifierFunction;
     juce::Label modifierIntervalLabel;
     juce::Slider modifierInterval;
@@ -44,10 +50,16 @@ private:
     juce::Slider modifierMax;
     juce::Label modifierStepLabel;
     juce::Slider modifierStep;
-    juce::ToggleButton modifierEuclidean;
-    juce::TextButton modifierUpdateEuclidean;
+    juce::TextButton modifierChangeMode;
     
     std::vector<bool> modifierEuclideanRhythm;
+    
+    enum modifierMode {
+        MODE_RANDOM,
+        MODE_EUCLIDEAN
+    };
+    
+    modifierMode mode = MODE_RANDOM;
     
     int euclideanPosition = -1;
     

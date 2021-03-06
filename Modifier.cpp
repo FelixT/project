@@ -23,43 +23,34 @@
 // http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf
 
 Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
-
-    
     samples = samplesPointer;
     
+    modifierFunctionLabel.setText("Parameter to modify:", juce::dontSendNotification);
     modifierFunction.addItem("Interval", 1);
     modifierFunction.addItem("Delay", 2);
     modifierFunction.addItem("BPM", 3);
+    modifierSelectLabel.setText("Sample:", juce::dontSendNotification);
+    updateDropdown();
     
-    modifierIntervalLabel.setText("Interval", juce::dontSendNotification);
+    modifierSelect.onChange = [this] { getParams(); };
+    modifierIntervalLabel.setText("Interval (beats)", juce::dontSendNotification);
     modifierInterval.setRange(1, 32, 1);
     modifierInterval.setValue(16);
+    modifierInterval.onValueChange = [this] { getParams(); };
     modifierMinLabel.setText("Minimum value", juce::dontSendNotification);
     modifierMin.setRange(0.25, 10, 0.25);
     modifierMin.setValue(2);
+    modifierMin.onValueChange = [this] { getParams(); };
     modifierMaxLabel.setText("Maximum value", juce::dontSendNotification);
     modifierMax.setRange(0.25, 10, 0.25);
     modifierMax.setValue(4);
+    modifierMax.onValueChange = [this] { getParams(); };
     modifierStepLabel.setText("Value step", juce::dontSendNotification);
     modifierStep.setRange(0.25, 10, 0.25);
+    modifierStep.onValueChange = [this] { getParams(); };
     
-    modifierEuclidean.setButtonText("Euclidean rhythms?");
-    modifierUpdateEuclidean.setButtonText("Update euclidean params");
-    modifierUpdateEuclidean.onClick = [this] {
-        int length = (int)modifierInterval.getValue();
-        int beats = (int)modifierMin.getValue();
-        
-        modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
-        std::cout << "terminated" << std::endl;
-        
-        // get current sample
-        int sampleIndex = modifierSelect.getSelectedId() - 1;
-        if(sampleIndex >= 0 & sampleIndex < samples->size()) {
-           // valid sample selected
-            Sample *sample = samples->at(sampleIndex);
-            sample->setInterval(modifierInterval.getValue());
-        }
-    };
+    modifierChangeMode.setButtonText("Random");
+    modifierChangeMode.onClick = [this] { changeMode(); };
     
     addAndMakeVisible(modifierSelect);
     addAndMakeVisible(modifierFunction);
@@ -67,16 +58,55 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     addAndMakeVisible(modifierMin);
     addAndMakeVisible(modifierMax);
     addAndMakeVisible(modifierStep);
-    addAndMakeVisible(modifierEuclidean);
+    addAndMakeVisible(modifierChangeMode);
     addAndMakeVisible(modifierIntervalLabel);
     addAndMakeVisible(modifierMaxLabel);
     addAndMakeVisible(modifierMinLabel);
     addAndMakeVisible(modifierStepLabel);
-    addAndMakeVisible(modifierUpdateEuclidean);
+    addAndMakeVisible(modifierFunctionLabel);
+    addAndMakeVisible(modifierSelectLabel);
+    
 }
 
 Modifier::~Modifier() {
     
+}
+
+void Modifier::changeMode() {
+    
+    if(mode == MODE_RANDOM) {
+        
+        // set mode to MODE_EUCLIDEAN
+        mode = MODE_EUCLIDEAN;
+        
+        modifierChangeMode.setButtonText("Euclidean");
+        modifierMinLabel.setText("Hits per cycle", juce::dontSendNotification);
+        modifierMax.setVisible(false);
+        modifierMaxLabel.setVisible(false);
+        modifierStepLabel.setText("Rhythm pulse length (beats)", juce::dontSendNotification);
+        modifierIntervalLabel.setText("Euclidean rhythm length", juce::dontSendNotification);
+        modifierFunction.setVisible(false);
+        modifierFunctionLabel.setVisible(false);
+        
+        
+    } else if(mode == MODE_EUCLIDEAN) {
+        
+        // set mode to MODE_RANDOM
+        mode = MODE_RANDOM;
+        
+        
+        modifierChangeMode.setButtonText("Random");
+        modifierMinLabel.setText("Minimum value", juce::dontSendNotification);
+        modifierMax.setVisible(true);
+        modifierMaxLabel.setVisible(true);
+        modifierStepLabel.setText("Value step", juce::dontSendNotification);
+        modifierIntervalLabel.setText("Interval (beats)", juce::dontSendNotification);
+        modifierFunction.setVisible(true);
+        modifierFunctionLabel.setVisible(true);
+
+    }
+    
+    getParams();
 }
 
 void euclideanRhythm(int &numLeft, int &numRight, std::vector<bool> &vecLeft, std::vector<bool> &vecRight) {
@@ -176,14 +206,15 @@ void Modifier::updateDropdown() {
 void Modifier::paint(juce::Graphics& g) {
     g.setColour(juce::Colour(100, 100, 100));
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 20.f);
+    //updateDropdown(); // this shouldn't really be called from the graphics thread
 }
 
 
 void Modifier::resized() {
-    updateDropdown();
-    
-    modifierSelect.setBounds(0, 0, 120, 20);
-    modifierFunction.setBounds(0, 40, 120, 20);
+    modifierSelectLabel.setBounds(15, 0, 120, 20);
+    modifierSelect.setBounds(15, 20, 120, 20);
+    modifierFunctionLabel.setBounds(15, 40, 120, 20);
+    modifierFunction.setBounds(15, 60, 120, 20);
     
     modifierIntervalLabel.setBounds(200, 0, 150, 20);
     modifierInterval.setBounds(200, 20, 150, 20);
@@ -195,8 +226,7 @@ void Modifier::resized() {
     modifierStepLabel.setBounds(550, 40, 150, 20);
     modifierStep.setBounds(550, 60, 150, 20);
     
-    modifierEuclidean.setBounds(550, 0, 120, 20);
-    modifierUpdateEuclidean.setBounds(700, 0, 50, 40);
+    modifierChangeMode.setBounds(550, 5, 120, 20);
     
 }
 
@@ -207,60 +237,88 @@ long Modifier::pow10(float input, int power) {
     return (long)input;
 }
 
-void Modifier::tick(long roundedBeat, long prevBeat) {
-    if(modifierEuclidean.getToggleState() && modifierEuclideanRhythm.size() > 0) {
+void Modifier::tickEuclidean(long roundedBeat, long prevBeat) {
+    if(modifierEuclideanRhythm.size() == 0) return;
+    
+    if((roundedBeat > prevBeat) && ((roundedBeat % roundedStep) == 0)) {
+        // every step, work out whether the sample should be playing
         
-        if((roundedBeat > prevBeat) && ((roundedBeat % roundedStep) == 0)) {
-            // every step, work out whether the sample should be playing
-            
-            euclideanPosition+=1;
-            euclideanPosition%=modifierEuclideanRhythm.size();
-            if(euclideanPosition == 0) std::cout << std::endl << "NEW" << std::endl;
-            
-            int sampleIndex = modifierSelect.getSelectedId() - 1;
-            if(sampleIndex >= 0 & sampleIndex < samples->size()) {
-               // valid sample selected
-                Sample *sample = samples->at(sampleIndex);
-            
-                if(modifierEuclideanRhythm.at(euclideanPosition)) {
-                    std::cout << "1";
-                    sample->setInterval(modifierStep.getValue()); // play immediately?
-                } else {
-                    std::cout << "0";
-                    sample->setInterval(modifierInterval.getValue());
-                }
+        euclideanPosition+=1;
+        euclideanPosition%=modifierEuclideanRhythm.size();
+        if(euclideanPosition == 0) std::cout << std::endl << "NEW" << std::endl;
+        
+        int sampleIndex = modifierSelect.getSelectedId() - 1;
+        if(sampleIndex >= 0 & sampleIndex < samples->size()) {
+           // valid sample selected
+            Sample *sample = samples->at(sampleIndex);
+        
+            if(modifierEuclideanRhythm.at(euclideanPosition)) {
+                std::cout << "1";
+                sample->setInterval(modifierStep.getValue()); // play immediately?
+            } else {
+                std::cout << "0";
+                sample->setInterval(modifierInterval.getValue());
             }
+        }
+    }
+}
+
+void Modifier::tickRandom(long roundedBeat, long prevBeat) {
+    if((roundedBeat > prevBeat) && ((roundedBeat % roundedInterval) == 0)) {
+        // every interval we do something?
+        int sampleIndex = modifierSelect.getSelectedId() - 1;
+        if(sampleIndex >= 0 & sampleIndex < samples->size()) {
+           // valid sample selected
+            Sample *sample = samples->at(sampleIndex);
+            
+            // update interval
+            
+            
+            juce::Random r = juce::Random();
+            // get value between min (1) and max (4), step (1)
+            double step = modifierStep.getValue();
+            int iMin = (int)(modifierMin.getValue() / step); // (1)
+            int iMax = (int)(modifierMax.getValue() / step); // (4)
+            if(iMax > 0) {
+                int n = r.nextInt(iMax) + iMin; // r.nextInt gives between 1-3
+                double newVal = (double)n*step;
+                
+                if(modifierFunction.getSelectedId() == MODIFIER_INTERVAL)
+                    sample->setInterval(newVal);
+                if(modifierFunction.getSelectedId() == MODIFIER_DELAY)
+                    sample->setDelay(newVal);
+                if(modifierFunction.getSelectedId() == MODIFIER_BPM)
+                    sample->setBpm(newVal*10);
+            } // otherwise user has entered parameters wrong and interval is too high or smth
+        }
+    }
+}
+
+void Modifier::tick(long roundedBeat, long prevBeat) {
+    if(mode == MODE_EUCLIDEAN) {
+        tickEuclidean(roundedBeat, prevBeat);
+    } else if(mode == MODE_RANDOM) {
+        tickRandom(roundedBeat, prevBeat);
+    }
+}
+
+void Modifier::getParams() {
+    if(mode == MODE_EUCLIDEAN) {
+        int length = (int)modifierInterval.getValue();
+        int beats = (int)modifierMin.getValue();
+        
+        modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
+        std::cout << "terminated" << std::endl;
+        
+        // get current sample
+        int sampleIndex = modifierSelect.getSelectedId() - 1;
+        if(sampleIndex >= 0 & sampleIndex < samples->size()) {
+           // valid sample selected
+            Sample *sample = samples->at(sampleIndex);
+            sample->setInterval(modifierInterval.getValue());
         }
     } else {
-        if((roundedBeat > prevBeat) && ((roundedBeat % roundedInterval) == 0)) {
-            // every interval we do something?
-            int sampleIndex = modifierSelect.getSelectedId() - 1;
-            if(sampleIndex >= 0 & sampleIndex < samples->size()) {
-               // valid sample selected
-                Sample *sample = samples->at(sampleIndex);
-                
-                // update interval
-                
-                
-                juce::Random r = juce::Random();
-                // get value between min (1) and max (4), step (1)
-                double step = modifierStep.getValue();
-                int iMin = (int)(modifierMin.getValue() / step); // (1)
-                int iMax = (int)(modifierMax.getValue() / step); // (4)
-                if(iMax > 0) {
-                    int n = r.nextInt(iMax) + iMin; // r.nextInt gives between 1-3
-                    double newVal = (double)n*step;
-                    
-                    if(modifierFunction.getSelectedId() == MODIFIER_INTERVAL)
-                        sample->setInterval(newVal);
-                    if(modifierFunction.getSelectedId() == MODIFIER_DELAY)
-                        sample->setDelay(newVal);
-                    if(modifierFunction.getSelectedId() == MODIFIER_BPM)
-                        sample->setBpm(newVal*10);
-                } // otherwise user has entered parameters wrong and interval is too high or smth
-            }
-        }
-        
+        // nothing for now...
     }
 }
 

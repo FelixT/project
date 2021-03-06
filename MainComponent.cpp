@@ -255,8 +255,8 @@ void MainComponent::updateWaveParams() {
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
     
-    if(roundBeat > prevBeat) // if beat changed
         juce::MessageManager::callAsync ([this] { repaint(10, 130, 100, 20); }); // redraw the beat count
+    
     
     // get buffers
     float* leftBuffer = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
@@ -348,15 +348,20 @@ void MainComponent::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
     
+    int width = getWidth();
+    int avaliableHeight = getHeight() - 150;
+    int samplesHeight = avaliableHeight/2 - 25;
+    int modifiersHeight = avaliableHeight/2 - 25;
     
     
-    g.setColour(juce::Colour(70, 70, 70));
-    g.fillRect(0, 150, 800, 200); // fill samples area
+    g.setColour(juce::Colour(50, 50, 50));
+    g.fillRect(0, 150, width, samplesHeight); // fill samples area
     
-    g.setColour(juce::Colour(70, 70, 70));
-    g.fillRect(0, 375, 800, 200); // fill modifiers area
+    g.setColour(juce::Colour(50, 50, 50));
+    g.fillRect(0, 150+samplesHeight+25, width, modifiersHeight); // fill modifiers area
     
-    // You can add your drawing code here!
+    // draw current beat
+    //g.fillRect(10, 100, 100, 20)
     curBeatLabel.setText(juce::String((double)roundBeat/(std::pow(10, precision))), juce::dontSendNotification);
 }
 
@@ -365,6 +370,12 @@ void MainComponent::resized()
     // This is called when the MainContentComponent is resized.
     // If you add any child components, this is where you should
     // update their positions.
+    
+    int width = getWidth();
+    
+    // == top parameters ==
+    // inhabits y: 0-125
+    
     bpmLabel.setBounds(10, 10, 100, 20);
     bpmSlider.setBounds(10, 30, 500, 20);
 
@@ -376,15 +387,21 @@ void MainComponent::resized()
     
     curBeatLabel.setBounds(10, 100, 100, 20);
         
-    sampleAddButton.setBounds(10, 120, 60, 20);
-    resetBeatButton.setBounds(80, 120, 60, 20);
-    saveStateButton.setBounds(150, 120, 60, 20);
-    loadStateButton.setBounds(220, 120, 60, 20);
-    modifierAddButton.setBounds(290, 120, 60, 20);
+    sampleAddButton.setBounds(10, 125, 60, 20);
+    resetBeatButton.setBounds(80, 125, 60, 20);
+    saveStateButton.setBounds(150, 125, 60, 20);
+    loadStateButton.setBounds(220, 125, 60, 20);
+    modifierAddButton.setBounds(290, 125, 60, 20);
     
-    // samples
+    int avaliableHeight = getHeight() - 150;
     
-    samplesViewport.setBounds(0, 150, 800, 200);
+    
+    // == samples ==
+    // inhabits y: 150-something
+    
+    int samplesHeight = avaliableHeight/2 - 25;
+    
+    samplesViewport.setBounds(0, 150, width, samplesHeight);
     
     int relativeY = 0;
     int margin = 10; // (bottom)
@@ -392,31 +409,34 @@ void MainComponent::resized()
     for(int i = 0; i < samples.size(); i++) {
         if(samples[i]->isCollapsed()) {
             int height = 40;
-            samples[i]->setBounds(0, relativeY, 800, height-margin);
+            samples[i]->setBounds(0, relativeY, width, height-margin);
             relativeY+=height;
             
         } else {
             int height = 140;
-            samples[i]->setBounds(0, relativeY, 800, height-margin);
+            samples[i]->setBounds(0, relativeY, width, height-margin);
             relativeY+=height;
         }
     }
     
-    samplesComponent.setBounds(0, 0, 800, relativeY);
+    samplesComponent.setBounds(0, 0, width, relativeY);
     
-    // modifiers
+    // == modifiers ==
+    // inhabits y: 375-575
     
-    modifiersViewport.setBounds(0, 375, 800, 200);
+    int modifiersHeight = avaliableHeight/2 - 25;
+    
+    modifiersViewport.setBounds(0, 150 + samplesHeight + 25, width, modifiersHeight);
     
     relativeY = 0;
     
     for(int i = 0; i < modifiers.size(); i++) {
         int height = 100;
-        modifiers[i]->setBounds(0, relativeY, 800, height-margin);
+        modifiers[i]->setBounds(0, relativeY, width, height-margin);
         relativeY+=height;
     }
 
-    modifiersComponent.setBounds(0, 0, 800, relativeY);
+    modifiersComponent.setBounds(0, 0, width, relativeY);
     
 }
 
