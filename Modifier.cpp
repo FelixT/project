@@ -57,8 +57,6 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
         if(sampleIndex >= 0 & sampleIndex < samples->size()) {
            // valid sample selected
             Sample *sample = samples->at(sampleIndex);
-            // this is v buggy...
-            const juce::MessageManagerLock mmLock;
             sample->setInterval(modifierInterval.getValue());
         }
     };
@@ -226,14 +224,10 @@ void Modifier::tick(long roundedBeat, long prevBeat) {
             
                 if(modifierEuclideanRhythm.at(euclideanPosition)) {
                     std::cout << "1";
-                    // this is v buggy...
-                    const juce::MessageManagerLock mmLock;
                     sample->setInterval(modifierStep.getValue()); // play immediately?
                 } else {
                     std::cout << "0";
-                    const juce::MessageManagerLock mmLock;
                     sample->setInterval(modifierInterval.getValue());
-                    // dunno
                 }
             }
         }
@@ -257,8 +251,6 @@ void Modifier::tick(long roundedBeat, long prevBeat) {
                     int n = r.nextInt(iMax) + iMin; // r.nextInt gives between 1-3
                     double newVal = (double)n*step;
                     
-                    // this is v buggy...
-                    const juce::MessageManagerLock mmLock;
                     if(modifierFunction.getSelectedId() == MODIFIER_INTERVAL)
                         sample->setInterval(newVal);
                     if(modifierFunction.getSelectedId() == MODIFIER_DELAY)
