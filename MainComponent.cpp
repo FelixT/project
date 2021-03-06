@@ -77,6 +77,10 @@ void MainComponent::saveState() {
         Sample *sample = samples.at(i);
         output += sample->toString();
     }
+    for(int i = 0; i < modifiers.size(); i++) {
+        Modifier *modifier = modifiers.at(i);
+        output += modifier->toString();
+    }
     std::cout << output << std::endl;
 }
 
@@ -127,6 +131,12 @@ void MainComponent::loadState() {
                     std::cout << "with label " << second << std::endl;
                     samples.back()->setLabel(second);
                     state = STATE_IN_SAMPLE_BLOCK;
+                } else if(first == "Modifier") {
+                    // create new sample
+                    
+                    std::cout << "MODIFIER" << std::endl;
+                    std::cout << "with label " << second << std::endl;
+                    state = STATE_IN_MODIFIER_BLOCK;
                 }
                 
             } else { // (we're within a block)
@@ -180,6 +190,8 @@ void MainComponent::loadState() {
                             samples.back()->setVolume(std::stod(second));
                             std::cout << "with volume " << second << std::endl;
                         }
+                    } else if(state == STATE_IN_MODIFIER_BLOCK) {
+                        // TODO: this
                     }
                     
                 }

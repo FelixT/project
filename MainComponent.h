@@ -100,6 +100,7 @@ private:
         STATE_OUT_OF_BLOCK,
         STATE_IN_PROJECT_BLOCK,
         STATE_IN_SAMPLE_BLOCK,
+        STATE_IN_MODIFIER_BLOCK,
         STATE_COMPLETE,
         STATE_ERROR
     };

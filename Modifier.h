@@ -23,6 +23,7 @@ public:
     void updateDropdown();
     void tick(long roundedBeat, long prevBeat);
     void updateParams(int precision);
+    std::string toString();
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);

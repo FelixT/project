@@ -11,3 +11,4 @@
 7) modifier update dropdown fix
 8) sample bpm rounding on large samples
 9) improve cropping functionality
+10) refactor loading state code, classes should have their own load functions

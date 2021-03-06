@@ -326,3 +326,16 @@ void Modifier::updateParams(int precision) {
     roundedInterval = pow10((float)modifierInterval.getValue(), precision);
     roundedStep = pow10((float)modifierStep.getValue(), precision);
 }
+
+std::string Modifier::toString() {
+    std::string output = "";
+    output += "Modifier <name> {\n";
+    output += "mode " + std::to_string(mode) + "\n";
+    output += "function " + std::to_string(modifierFunction.getSelectedId()) + "\n";
+    output += "interval " + std::to_string(modifierInterval.getValue()) + "\n";
+    output += "min " + std::to_string(modifierMin.getValue()) + "\n";
+    output += "max " + std::to_string(modifierMax.getValue()) + "\n";
+    output += "step " + std::to_string(modifierStep.getValue()) + "\n";
+    output += "}\n";
+    return output;
+}
