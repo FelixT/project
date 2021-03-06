@@ -27,7 +27,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     // bpm
     sampleBpmSlider.setRange(5, 500, 0.01);
     sampleBpmSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 75, 20);
-    sampleBpmSlider.setValue(120);
+    sampleBpmSlider.setValue(sampleBpm);
     sampleBpmSlider.onValueChange = [this] { getParams(); };
     sampleBpmLabel.setText("Sample BPM", juce::dontSendNotification);
     sampleBpmLabel.setJustificationType(juce::Justification::right);
@@ -46,7 +46,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     //interval
     sampleIntervalSlider.setRange(0.25, 16, 0.25);
     sampleIntervalSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
-    sampleIntervalSlider.setValue(1);
+    sampleIntervalSlider.setValue(interval);
     sampleIntervalSlider.onValueChange = [this] { getParams(); };
     sampleIntervalLabel.setText("Sample interval (beats)", juce::dontSendNotification);
     sampleIntervalLabel.setJustificationType(juce::Justification::right);
@@ -55,12 +55,13 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleDelaySlider.setRange(0, 10, 0.25);
     sampleDelaySlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
     sampleDelaySlider.onValueChange = [this] { getParams(); };
+    sampleDelaySlider.setValue(delay);
     sampleDelayLabel.setText("Sample delay (beats)", juce::dontSendNotification);
     sampleDelayLabel.setJustificationType(juce::Justification::right);
 
     // volume
     sampleVolumeSlider.setRange(0, 100, 1);
-    sampleVolumeSlider.setValue(100);
+    sampleVolumeSlider.setValue(volume*100.0);
     sampleVolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
     sampleVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 30);
     sampleVolumeSlider.onValueChange = [this] { getParams(); };
@@ -111,7 +112,7 @@ void Sample::paint (juce::Graphics& g)
     }
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 20.f);
     
-    // set values
+    // make sliders reflect true values
     sampleBpmSlider.setValue(sampleBpm);
     sampleVolumeSlider.setValue(volume*100.0);
     sampleIntervalSlider.setValue(interval);
@@ -297,69 +298,6 @@ void Sample::setVolume(double val) {
 void Sample::setBpm(double val) {
     sampleBpm = val;
     slidersChanged = true;
-}
-
-void Sample::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill, float trackBpm, int precision, long roundedBeat, long prevBeat, float curBeat) {
- 
-    // unused
-    /*float decimal = 1.f / pow10(1, precision);
-    
-    std::cout << decimal << std::endl;
-    
-    // get value of sliders
-    // todo: use listeners so value always correct in class
-    sampleBpm = (float)sampleBpmSlider.getValue();
-    
-    startPos = (float)sampleCropLeftSlider.getValue() * 0.01f * sampleBuffer->getNumSamples();
-    endPos = (1.f - ((float)sampleCropRightSlider.getValue() * 0.01f)) * sampleBuffer->getNumSamples();
-    
-    interval = (float)sampleIntervalSlider.getValue();
-    delay = (float)sampleDelaySlider.getValue();
-    
-    
-    // calculations
-    playbackRate = trackBpm / sampleBpm;
-    if(trackBpm == 0.f) playbackRate = 0.f;
-    long roundedInterval = pow10(interval, precision);
-    long roundedDelay = pow10(delay, precision);
-
-    
-    // get buffers
-    float* outLeftBuffer = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
-    float* outRightBuffer = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
-    
-    
-    // start playing sample when curBeat is multiple of interval,
-    // and if curBeat > previous, i.e. only calculate this every 1/(10^precision)th of a beat
-    // note undefined behaviour (crash) if interval is 0
-    //if((roundedBeat > prevBeat) && (((roundedBeat-roundedDelay) % roundedInterval) == 0)) {
-    if((roundedBeat > prevBeat) && (((roundedBeat-roundedDelay) % roundedInterval) == 0)) {
-        curPos = startPos;
-        isWaiting = false;
-        
-        // repaint
-        juce::MessageManager::callAsync ([this] { repaint(); });
-    }
-
-    if(!isWaiting) { // sample playing
-    
-        for(int outOffset = 0; outOffset < bufferToFill.numSamples; outOffset++) {
-            //int adjustedSampleOffset = std::round((float)sampleOffset * samplePlaybackRate);
-            int sampleOffset = (int)std::round(curPos);
-            
-            outLeftBuffer[outOffset] += inLeftBuffer[sampleOffset];
-            outRightBuffer[outOffset] += inRightBuffer[sampleOffset];
-            
-            curPos += playbackRate;
-            if(curPos >= endPos) {
-                // reached end of sample
-                isWaiting = true;
-                
-                // repaint
-                juce::MessageManager::callAsync ([this] { repaint(); });
-            }
-        }
-    }*/
 }
 
 std::string Sample::toString() {

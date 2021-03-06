@@ -20,7 +20,6 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     void getValue(float &outLeft, float &outRight, long roundedBeat, long prevBeat);
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill, float trackBpm, int precision, long roundedBeat, long prevBeat, float curBeat);
     void updateParams(float trackBpm, int precision, int numSamples);
     std::string toString();
     void setLabel(std::string label);
