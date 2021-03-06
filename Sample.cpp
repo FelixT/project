@@ -43,7 +43,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleCropRightLabel.setJustificationType(juce::Justification::right);
     
     //interval
-    sampleIntervalSlider.setRange(0.25, 10, 0.25);
+    sampleIntervalSlider.setRange(0.25, 16, 0.25);
     sampleIntervalSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
     sampleIntervalSlider.setValue(1);
     sampleIntervalLabel.setText("Sample interval (beats)", juce::dontSendNotification);
