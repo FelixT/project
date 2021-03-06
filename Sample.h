@@ -26,11 +26,11 @@ public:
     void setLabel(std::string label);
     void setStart(double start);
     void setEnd(double end);
-    void setInterval(double interval);
-    void setDelay(double delay);
-    void setVolume(double volume);
+    void setInterval(double val);
+    void setDelay(double val);
+    void setVolume(double val);
     void setPath(std::string path);
-    void setBpm(double bpm);
+    void setBpm(double val);
     bool isCollapsed();
     void setCollapsed(bool c);
     juce::String getLabel();
@@ -41,6 +41,7 @@ public:
 private:
     void browse();
     long pow10(float input, int power);
+    void getParams();
     
     bool collapsed = false;
     std::string samplePath;
@@ -65,12 +66,15 @@ private:
     juce::AudioBuffer<float> *sampleBuffer = nullptr;
     
     float curPos = 0.f;
-    float sampleBpm = 0.f;
+    
+    double sampleBpm = 120.f;
+    double interval = 1.f;
+    double delay = 0.f;
+    double volume = 1.f;
+    
     float playbackRate = 0.f;
     float startPos = 0.f;
     float endPos = 0.f;
-    float interval = 1.f;
-    float delay = 0.f;
     
     long roundedInterval = 1;
     long roundedDelay = 0;
@@ -78,9 +82,8 @@ private:
     const float *inLeftBuffer;
     const float *inRightBuffer;
     
-    float volume = 1.f;
-    
     bool isWaiting = true;
+    bool slidersChanged = false;
     
     juce::AudioFormatManager *formatManager;
     

@@ -28,6 +28,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleBpmSlider.setRange(5, 500, 0.01);
     sampleBpmSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 75, 20);
     sampleBpmSlider.setValue(120);
+    sampleBpmSlider.onValueChange = [this] { getParams(); };
     sampleBpmLabel.setText("Sample BPM", juce::dontSendNotification);
     sampleBpmLabel.setJustificationType(juce::Justification::right);
         
@@ -46,12 +47,14 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleIntervalSlider.setRange(0.25, 16, 0.25);
     sampleIntervalSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
     sampleIntervalSlider.setValue(1);
+    sampleIntervalSlider.onValueChange = [this] { getParams(); };
     sampleIntervalLabel.setText("Sample interval (beats)", juce::dontSendNotification);
     sampleIntervalLabel.setJustificationType(juce::Justification::right);
 
     // delay
     sampleDelaySlider.setRange(0, 10, 0.25);
     sampleDelaySlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
+    sampleDelaySlider.onValueChange = [this] { getParams(); };
     sampleDelayLabel.setText("Sample delay (beats)", juce::dontSendNotification);
     sampleDelayLabel.setJustificationType(juce::Justification::right);
 
@@ -60,6 +63,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleVolumeSlider.setValue(100);
     sampleVolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
     sampleVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 30);
+    sampleVolumeSlider.onValueChange = [this] { getParams(); };
     sampleVolumeLabel.setText("Sample volume", juce::dontSendNotification);
     sampleVolumeLabel.setJustificationType(juce::Justification::right);
     
@@ -106,6 +110,13 @@ void Sample::paint (juce::Graphics& g)
         g.setColour(juce::Colour(100, 100, 100));
     }
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 20.f);
+    
+    // set values
+    sampleBpmSlider.setValue(sampleBpm);
+    sampleVolumeSlider.setValue(volume*100.0);
+    sampleIntervalSlider.setValue(interval);
+    sampleDelaySlider.setValue(delay);
+    slidersChanged = false;
 }
 
 void Sample::resized() {
@@ -219,19 +230,26 @@ void Sample::getValue(float &outLeft, float &outRight, long roundedBeat, long pr
     }
 }
 
+void Sample::getParams() {
+    sampleBpm = (float)sampleBpmSlider.getValue();
+    interval = (float)sampleIntervalSlider.getValue();
+    delay = (float)sampleDelaySlider.getValue();
+    volume = (float)sampleVolumeSlider.getValue() / 100.f;
+}
+
 void Sample::updateParams(float trackBpm, int precision, int numSamples) {
     // get value of sliders
     // todo: use listeners so value always correct in class
-    sampleBpm = (float)sampleBpmSlider.getValue();
+    //sampleBpm = (float)sampleBpmSlider.getValue();
+    //interval = (float)sampleIntervalSlider.getValue();
+    //delay = (float)sampleDelaySlider.getValue();
+    //volume = (float)sampleVolumeSlider.getValue() / 100.f;
+
+    if(slidersChanged) juce::MessageManager::callAsync ([this] { repaint(); });
     
     startPos = (float)sampleCropLeftSlider.getValue() * 0.01f * sampleBuffer->getNumSamples();
     endPos = (1.f - ((float)sampleCropRightSlider.getValue() * 0.01f)) * sampleBuffer->getNumSamples();
-    
-    interval = (float)sampleIntervalSlider.getValue();
-    delay = (float)sampleDelaySlider.getValue();
-    
-    volume = (float)sampleVolumeSlider.getValue() / 100.f;
-    
+
     // calculations
     playbackRate = trackBpm / sampleBpm;
     if(trackBpm == 0.f) playbackRate = 0.f;
@@ -261,20 +279,24 @@ void Sample::setEnd(double end) {
     sampleCropRightSlider.setValue(end);
 }
 
-void Sample::setInterval(double interval) {
-    sampleIntervalSlider.setValue(interval);
+void Sample::setInterval(double val) {
+    interval = val;
+    slidersChanged = true;
 }
 
-void Sample::setDelay(double delay) {
-    sampleDelaySlider.setValue(delay);
+void Sample::setDelay(double val) {
+    delay = val;
+    slidersChanged = true;
 }
 
-void Sample::setVolume(double volume) {
-    sampleVolumeSlider.setValue(volume);
+void Sample::setVolume(double val) {
+    volume = val;
+    slidersChanged = true;
 }
 
-void Sample::setBpm(double bpm) {
-    sampleBpmSlider.setValue(bpm);
+void Sample::setBpm(double val) {
+    sampleBpm = val;
+    slidersChanged = true;
 }
 
 void Sample::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill, float trackBpm, int precision, long roundedBeat, long prevBeat, float curBeat) {
