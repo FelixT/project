@@ -66,10 +66,10 @@ private:
     
     float curPos = 0.f;
     
-    double sampleBpm = 120.f;
-    double interval = 1.f;
-    double delay = 0.f;
-    double volume = 1.f;
+    double sampleBpm = 120.0;
+    double interval = 1.0;
+    double delay = 0.0;
+    double volume = 1.0;
     
     float playbackRate = 0.f;
     float startPos = 0.f;

@@ -232,10 +232,10 @@ void Sample::getValue(float &outLeft, float &outRight, long roundedBeat, long pr
 }
 
 void Sample::getParams() {
-    sampleBpm = (float)sampleBpmSlider.getValue();
-    interval = (float)sampleIntervalSlider.getValue();
-    delay = (float)sampleDelaySlider.getValue();
-    volume = (float)sampleVolumeSlider.getValue() / 100.f;
+    sampleBpm = sampleBpmSlider.getValue();
+    interval = sampleIntervalSlider.getValue();
+    delay = sampleDelaySlider.getValue();
+    volume = sampleVolumeSlider.getValue() / 100.0;
 }
 
 void Sample::updateParams(float trackBpm, int precision, int numSamples) {

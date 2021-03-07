@@ -24,6 +24,14 @@ public:
     void tick(long roundedBeat, long prevBeat);
     void updateParams(int precision);
     std::string toString();
+    
+    void setInterval(double val);
+    void setMin(double val);
+    void setMax(double val);
+    void setStep(double val);
+    void setSample(int index);
+    void setMode(int index);
+    void setFunction(int index);
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
@@ -52,6 +60,15 @@ private:
     juce::Label modifierStepLabel;
     juce::Slider modifierStep;
     juce::TextButton modifierChangeMode;
+    
+    double interval = 16.0;
+    double min = 2.0;
+    double max = 4.0;
+    double step = 0.25;
+    int sampleIndex = -1;
+    int functionIndex = 0;
+    
+    bool slidersChanged = false;
     
     std::vector<bool> modifierEuclideanRhythm;
     

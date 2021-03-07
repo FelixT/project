@@ -90,6 +90,7 @@ void MainComponent::loadState() {
     
     if(chooser.browseForFileToOpen()) {
         resetSamples();
+        resetModifiers();
         
         juce::File jfile = chooser.getResult();
         
@@ -132,7 +133,8 @@ void MainComponent::loadState() {
                     samples.back()->setLabel(second);
                     state = STATE_IN_SAMPLE_BLOCK;
                 } else if(first == "Modifier") {
-                    // create new sample
+                    // create new modifier
+                    addModifier();
                     
                     std::cout << "MODIFIER" << std::endl;
                     std::cout << "with label " << second << std::endl;
@@ -192,6 +194,40 @@ void MainComponent::loadState() {
                         }
                     } else if(state == STATE_IN_MODIFIER_BLOCK) {
                         // TODO: this
+                        if(first == "mode") {
+                            modifiers.back()->setMode(std::stoi(second));
+                            std::cout << "with mode " << second << std::endl;
+                        }
+                        
+                        if(first == "function") {
+                            modifiers.back()->setFunction(std::stoi(second));
+                            std::cout << "with function " << second << std::endl;
+                        }
+                        
+                        if(first == "sample") {
+                            modifiers.back()->setSample(std::stoi(second));
+                            std::cout << "with sample " << second << std::endl;
+                        }
+                        
+                        if(first == "interval") {
+                            modifiers.back()->setInterval(std::stod(second));
+                            std::cout << "with interval " << second << std::endl;
+                        }
+                        
+                        if(first == "min") {
+                            modifiers.back()->setMin(std::stod(second));
+                            std::cout << "with min " << second << std::endl;
+                        }
+                        
+                        if(first == "max") {
+                            modifiers.back()->setMax(std::stod(second));
+                            std::cout << "with max " << second << std::endl;
+                        }
+                        
+                        if(first == "step") {
+                            modifiers.back()->setStep(std::stod(second));
+                            std::cout << "with step " << second << std::endl;
+                        }
                     }
                     
                 }
@@ -409,7 +445,6 @@ void MainComponent::resized()
     
     
     // == samples ==
-    // inhabits y: 150-something
     
     int samplesHeight = avaliableHeight/2 - 25;
     
@@ -434,7 +469,6 @@ void MainComponent::resized()
     samplesComponent.setBounds(0, 0, width, relativeY);
     
     // == modifiers ==
-    // inhabits y: 375-575
     
     int modifiersHeight = avaliableHeight/2 - 25;
     
