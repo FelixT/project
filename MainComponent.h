@@ -47,7 +47,8 @@ private:
     //==============================================================================
     
     int precision = 2;  // number of decimal places of beats to use in calculations
-    float volume = 0.5f; // 0 - 1
+    float waveVolume = 0.5f; // 0 - 1
+    float masterVolume = 1.0f;
     
     long pow10(float input, int power);
     
@@ -76,6 +77,9 @@ private:
     
     juce::Slider noteLengthSlider;
     juce::Label noteLengthLabel;
+    
+    juce::Slider masterVolumeSlider;
+    juce::Label masterVolumeLabel;
     
     juce::Label curBeatLabel;
     

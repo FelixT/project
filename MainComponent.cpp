@@ -9,7 +9,12 @@ MainComponent::MainComponent()
     bpmSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 100, 20);
     bpmSlider.setValue(120);
     bpmLabel.setText("BPM", juce::dontSendNotification);
-
+    
+    masterVolumeSlider.setRange(0, 1, 0.01);
+    masterVolumeSlider.setValue(1.0);
+    masterVolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
+    masterVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 30);
+    masterVolumeLabel.setText("Master volume", juce::dontSendNotification);
     
     freqSlider.setRange(0, 2000, 0.1);
     freqSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
@@ -43,6 +48,8 @@ MainComponent::MainComponent()
     addAndMakeVisible(freqLabel);
     addAndMakeVisible(bpmSlider);
     addAndMakeVisible(bpmLabel);
+    addAndMakeVisible(masterVolumeLabel);
+    addAndMakeVisible(masterVolumeSlider);
     addAndMakeVisible(noteLengthSlider);
     addAndMakeVisible(noteLengthLabel);
     addAndMakeVisible(curBeatLabel);
@@ -285,7 +292,7 @@ void MainComponent::addModifier() {
 void MainComponent::getWaveValue(float &outLeft, float &outRight) {
     curWaveAngle+=waveAngleDelta;
     if(waveEnabled && (fmod(curBeat, 1) < waveNoteLength)) {
-        float waveValue = std::sinf(curWaveAngle) * volume;
+        float waveValue = std::sinf(curWaveAngle) * waveVolume;
         outLeft += waveValue;
         outRight += waveValue;
     }
@@ -303,7 +310,7 @@ void MainComponent::updateWaveParams() {
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
     
-        juce::MessageManager::callAsync ([this] { repaint(10, 130, 100, 20); }); // redraw the beat count
+    juce::MessageManager::callAsync ([this] { repaint(10, 130, 100, 20); }); // redraw the beat count
     
     
     // get buffers
@@ -314,9 +321,9 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     float beatFrequency = (float)bpmSlider.getValue()/60.f; // Hz (beats/second)
     samplesPerBeat = (float)curSampleRate / beatFrequency; // samples/beat
     beatsPerSample = 1.f / samplesPerBeat; // i.e. delta beat added for each sample
+    masterVolume = (float)masterVolumeSlider.getValue();
     
     // SINE
-    
     updateWaveParams();
     
     // MODIFIERS
@@ -358,8 +365,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             sample->getValue(outLeft, outRight, roundBeat, prevBeat);
         }
         
-        leftBuffer[sampleOffset] = outLeft;
-        rightBuffer[sampleOffset] = outRight;
+        leftBuffer[sampleOffset] = outLeft*masterVolume;
+        rightBuffer[sampleOffset] = outRight*masterVolume;
         
         curBeat+=beatsPerSample;
         
@@ -427,6 +434,9 @@ void MainComponent::resized()
     bpmLabel.setBounds(10, 10, 100, 20);
     bpmSlider.setBounds(10, 30, 500, 20);
 
+    masterVolumeLabel.setBounds(600, 10, 50, 40);
+    masterVolumeSlider.setBounds(600, 45, 50, 85);
+    
     freqLabel.setBounds(10, 50, 100, 20);
     freqSlider.setBounds(10, 70, 250, 20);
     
