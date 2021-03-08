@@ -41,6 +41,7 @@ private:
     void browse();
     long pow10(float input, int power);
     void getParams();
+    bool loadSample(juce::File file);
     
     bool collapsed = false;
     std::string samplePath;

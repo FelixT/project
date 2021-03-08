@@ -108,6 +108,8 @@ private:
         STATE_COMPLETE,
         STATE_ERROR
     };
+    
+    bool loading = false;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

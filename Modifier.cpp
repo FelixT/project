@@ -25,31 +25,36 @@
 Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     samples = samplesPointer;
     
-    modifierFunctionLabel.setText("Parameter to modify:", juce::dontSendNotification);
     modifierFunction.addItem("Interval", 1);
     modifierFunction.addItem("Delay", 2);
     modifierFunction.addItem("BPM", 3);
-    modifierFunction.onChange = [this] { getParams(); };
-    modifierSelectLabel.setText("Sample:", juce::dontSendNotification);
     updateDropdown();
     
+    modifierFunctionLabel.setText("Parameter to modify:", juce::dontSendNotification);
+    modifierFunction.onChange = [this] { getParams(); };
+    modifierSelectLabel.setText("Sample:", juce::dontSendNotification);
     modifierSelect.onChange = [this] { getParams(); };
+    
     modifierIntervalLabel.setText("Interval (beats)", juce::dontSendNotification);
     modifierInterval.setRange(1, 32, 1);
-    modifierInterval.setValue(interval);
+    modifierInterval.setValue(interval, juce::dontSendNotification);
     modifierInterval.onValueChange = [this] { getParams(); };
+
     modifierMinLabel.setText("Minimum value", juce::dontSendNotification);
     modifierMin.setRange(0.25, 10, 0.25);
-    modifierMin.setValue(min);
+    modifierMin.setValue(min, juce::dontSendNotification);
     modifierMin.onValueChange = [this] { getParams(); };
+
     modifierMaxLabel.setText("Maximum value", juce::dontSendNotification);
     modifierMax.setRange(0.25, 10, 0.25);
-    modifierMax.setValue(max);
+    modifierMax.setValue(max, juce::dontSendNotification);
     modifierMax.onValueChange = [this] { getParams(); };
+
     modifierStepLabel.setText("Value step", juce::dontSendNotification);
     modifierStep.setRange(0.25, 10, 0.25);
-    modifierStep.setValue(step);
+    modifierStep.setValue(step, juce::dontSendNotification);
     modifierStep.onValueChange = [this] { getParams(); };
+    
     
     modifierChangeMode.setButtonText("Random");
     modifierChangeMode.onClick = [this] { changeMode(); };
@@ -76,6 +81,8 @@ Modifier::~Modifier() {
 
 void Modifier::changeMode() {
     
+    updateDropdown(); // put this here cus dont know where else to...
+    
     if(mode == MODE_RANDOM) {
         
         // set mode to MODE_EUCLIDEAN
@@ -89,24 +96,24 @@ void Modifier::changeMode() {
 
     }
     
-    if(slidersChanged) juce::MessageManager::callAsync ([this] { repaint(); });
+    slidersChanged = true;
     
     getParams();
 }
 
 void euclideanRhythm(int &numLeft, int &numRight, std::vector<bool> &vecLeft, std::vector<bool> &vecRight) {
     // display input
-    std::cout << numLeft << "x[";
+    //std::cout << numLeft << "x[";
     for(int i = 0; i < vecLeft.size(); i++) {
-        if(vecLeft.at(i)) std::cout << "1";
-        else std::cout << "0";
+        //if(vecLeft.at(i)) std::cout << "1";
+        //else std::cout << "0";
     }
-    std::cout << "], " << numRight << "x[";
+    //std::cout << "], " << numRight << "x[";
     for(int i = 0; i < vecRight.size(); i++) {
-        if(vecRight.at(i)) std::cout << "1";
-        else std::cout << "0";
+        //if(vecRight.at(i)) std::cout << "1";
+        //else std::cout << "0";
     }
-    std::cout << "]" << std::endl;
+    //std::cout << "]" << std::endl;
     
     // calculate next interation
     
@@ -170,22 +177,24 @@ std::vector<bool> Modifier::genEuclideanRhythm(int length, int pulses) {
     }
     
     // display output
-    std::cout << std::endl;
+    //std::cout << std::endl;
     for(int i = 0; i < output.size(); i++) {
-        if(output.at(i)) std::cout << "1";
-        else std::cout << "0";
+        //if(output.at(i)) std::cout << "1";
+        //else std::cout << "0";
     }
-    std::cout << std::endl;
+    //std::cout << std::endl;
     
     return output;
 }
 
 void Modifier::updateDropdown() {
-    modifierSelect.clear();
+    int id = modifierSelect.getSelectedId();
+    modifierSelect.clear(juce::dontSendNotification);
     for(int i = 0; i < samples->size(); i++) {
         const juce::String label = samples->at(i)->getLabel();
         modifierSelect.addItem(label, i+1);
     }
+    modifierSelect.setSelectedId(id, juce::dontSendNotification);
 }
 
 void Modifier::paint(juce::Graphics& g) {
@@ -194,13 +203,13 @@ void Modifier::paint(juce::Graphics& g) {
     //updateDropdown(); // this shouldn't really be called from the graphics thread
     
     // make sliders reflect true values
-    modifierInterval.setValue(interval);
-    modifierMin.setValue(min);
-    modifierMax.setValue(max);
-    modifierStep.setValue(step);
+    modifierInterval.setValue(interval, juce::dontSendNotification);
+    modifierMin.setValue(min, juce::dontSendNotification);
+    modifierMax.setValue(max, juce::dontSendNotification);
+    modifierStep.setValue(step, juce::dontSendNotification);
     
-    modifierSelect.setSelectedId(sampleIndex+1);
-    modifierFunction.setSelectedId(functionIndex);
+    modifierSelect.setSelectedId(sampleIndex+1, juce::dontSendNotification);
+    modifierFunction.setSelectedId(functionIndex, juce::dontSendNotification);
     
     if(mode == MODE_RANDOM) {
         
@@ -300,17 +309,17 @@ void Modifier::tickEuclidean(long roundedBeat, long prevBeat) {
         
         euclideanPosition+=1;
         euclideanPosition%=modifierEuclideanRhythm.size();
-        if(euclideanPosition == 0) std::cout << std::endl << "NEW" << std::endl;
+        //if(euclideanPosition == 0) std::cout << std::endl << "NEW" << std::endl;
         
         if(sampleIndex >= 0 & sampleIndex < samples->size()) {
            // valid sample selected
             Sample *sample = samples->at(sampleIndex);
         
             if(modifierEuclideanRhythm.at(euclideanPosition)) {
-                std::cout << "1";
+                //std::cout << "1";
                 sample->setInterval(step); // play immediately?
             } else {
-                std::cout << "0";
+                //std::cout << "0";
                 sample->setInterval(interval);
             }
         }
@@ -355,6 +364,8 @@ void Modifier::tick(long roundedBeat, long prevBeat) {
 }
 
 void Modifier::getParams() {
+    std::cout << "GET PARAMS" << tmp++ << std::endl;
+    
     interval = modifierInterval.getValue();
     min = modifierMin.getValue();
     max = modifierMax.getValue();
@@ -367,7 +378,7 @@ void Modifier::getParams() {
         int beats = (int)min;
         
         modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
-        std::cout << "terminated" << std::endl;
+        //std::cout << "terminated" << std::endl;
         
         // get current sample
         if(sampleIndex >= 0 & sampleIndex < samples->size()) {

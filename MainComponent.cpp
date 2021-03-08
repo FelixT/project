@@ -96,6 +96,8 @@ void MainComponent::loadState() {
     juce::FileChooser chooser("Select project file (.PR)", {}, "*.pr");
     
     if(chooser.browseForFileToOpen()) {
+        loading = true;
+        
         resetSamples();
         resetModifiers();
         
@@ -200,7 +202,6 @@ void MainComponent::loadState() {
                             std::cout << "with volume " << second << std::endl;
                         }
                     } else if(state == STATE_IN_MODIFIER_BLOCK) {
-                        // TODO: this
                         if(first == "mode") {
                             modifiers.back()->setMode(std::stoi(second));
                             std::cout << "with mode " << second << std::endl;
@@ -243,6 +244,8 @@ void MainComponent::loadState() {
             }
             
         }
+        
+        loading = false;
     }
 }
 
@@ -310,6 +313,8 @@ void MainComponent::updateWaveParams() {
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
     
+    if(loading) return;
+    
     juce::MessageManager::callAsync ([this] { repaint(10, 130, 100, 20); }); // redraw the beat count
     
     
@@ -344,6 +349,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     for(int sampleOffset = 0; sampleOffset < bufferToFill.numSamples; sampleOffset++) {
         // todo: at some point we should reset the curBeat to 0 to prevent overflow
         // rounding becomes a problem at high bpm and with high preicision, low bpms don't increment beat count as delta is too low
+        // or modulo on high ints messes things up
         prevBeat = roundBeat;
         roundBeat = pow10(curBeat, precision);
         

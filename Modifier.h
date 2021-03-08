@@ -83,7 +83,10 @@ private:
     
     std::vector<Sample*> *samples;
     long roundedInterval;
-    long roundedStep;    
+    long roundedStep;
+    
+    
+    int tmp = 0; // delete this
 };
 
 #endif /* Modifier_hpp */

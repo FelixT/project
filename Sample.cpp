@@ -154,10 +154,7 @@ void Sample::resized() {
     
 }
 
-void Sample::setPath(std::string path) {
-    samplePath = path;
-    juce::File file(samplePath);
-    
+bool Sample::loadSample(juce::File file) {
     sampleReader = formatManager->createReaderFor(file);
 
     if(sampleReader != nullptr) {
@@ -166,7 +163,25 @@ void Sample::setPath(std::string path) {
         sampleReader->read(sampleBuffer, 0, sampleReader->lengthInSamples, 0, true, true);
         
         isLoaded = true;
+        
+        return true;
+    } else {
+        
+        if(samplePath != "") {
+            const std::string err = "Couldn't open file with path '" + samplePath + "'";
+            juce::AlertWindow *a = new juce::AlertWindow("ERROR", "ERROR", juce::AlertWindow::AlertIconType::WarningIcon);
+            a->showMessageBox(juce::AlertWindow::AlertIconType::WarningIcon, "ERROR", err);
+        }
+        
+        return false;
     }
+}
+
+void Sample::setPath(std::string path) {
+    samplePath = path;
+    juce::File file(samplePath);
+    
+    loadSample(file);
 }
 
 void Sample::browse() {
@@ -174,17 +189,12 @@ void Sample::browse() {
     
     if(sampleChooser.browseForFileToOpen()) {
         juce::File file = sampleChooser.getResult();
-        samplePath = file.getFullPathName().toStdString();
-        setLabel(file.getFileName().toStdString());
-        
-        sampleReader = formatManager->createReaderFor(file);
-        
-        if(sampleReader != nullptr) {
-            sampleBuffer = new juce::AudioBuffer<float>(2, sampleReader->lengthInSamples);
 
-            sampleReader->read(sampleBuffer, 0, sampleReader->lengthInSamples, 0, true, true);
-            
+        if(loadSample(file)) {
             isLoaded = true;
+            
+            samplePath = file.getFullPathName().toStdString();
+            setLabel(file.getFileName().toStdString());
         }
     }
 }
