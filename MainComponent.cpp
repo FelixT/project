@@ -40,6 +40,9 @@ MainComponent::MainComponent()
     
     modifierAddButton.setButtonText("Add modifier");
     modifierAddButton.onClick = [this] { addModifier(); };
+    
+    newProjectButton.setButtonText("New project");
+    newProjectButton.onClick = [this] { resetSamples(); resetModifiers(); curBeat = -0.1f; prevBeat = -0.2f; };
 
     samplesViewport.setViewedComponent(&samplesComponent, false);
     modifiersViewport.setViewedComponent(&modifiersComponent, false);
@@ -58,6 +61,7 @@ MainComponent::MainComponent()
     addAndMakeVisible(saveStateButton);
     addAndMakeVisible(loadStateButton);
     addAndMakeVisible(modifierAddButton);
+    addAndMakeVisible(newProjectButton);
     addAndMakeVisible(samplesViewport);
     addAndMakeVisible(modifiersViewport);
     
@@ -456,6 +460,7 @@ void MainComponent::resized()
     saveStateButton.setBounds(150, 125, 60, 20);
     loadStateButton.setBounds(220, 125, 60, 20);
     modifierAddButton.setBounds(290, 125, 60, 20);
+    newProjectButton.setBounds(360, 125, 60, 20);
     
     int avaliableHeight = getHeight() - 150;
     

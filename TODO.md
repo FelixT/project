@@ -12,3 +12,7 @@
 8) sample bpm rounding on large samples
 9) improve cropping functionality
 10) refactor loading state code, classes should have their own load functions
+11) option of which beat to start euclidean on
+12) equations
+13) modifiers of modifiers 
+

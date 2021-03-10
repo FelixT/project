@@ -39,6 +39,8 @@ private:
     void tickRandom(long roundedBeat, long prevBeat);
     void getParams();
     void changeMode();
+    void populatePresets();
+    void selectPreset();
     
     enum modifierState {
         MODIFIER_IDLE,
@@ -46,6 +48,14 @@ private:
         MODIFIER_DELAY,
         MODIFIER_BPM
     };
+    
+    struct euclideanPreset {
+        std::string name;
+        int hits;
+        int interval;
+    };
+    
+    std::vector<euclideanPreset> euclideanPresets;
     
     juce::Label modifierSelectLabel;
     juce::ComboBox modifierSelect;
@@ -62,6 +72,8 @@ private:
     juce::TextButton modifierChangeMode;
     juce::TextEditor modifierEquation;
     juce::Label modifierEquationLabel;
+    juce::Label modifierPresetLabel;
+    juce::ComboBox modifierPresetMenu;
     
     std::string equation = "x";
     

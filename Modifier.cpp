@@ -62,8 +62,15 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     modifierEquation.onTextChange = [this] { getParams(); };
     modifierEquationLabel.setText("Equation", juce::dontSendNotification);
     
+    populatePresets();
+    modifierPresetMenu.onChange = [this] { selectPreset(); };
+    modifierPresetLabel.setText("Preset", juce::dontSendNotification);
+    
     addChildComponent(modifierEquation);
     addChildComponent(modifierEquationLabel);
+    
+    addChildComponent(modifierPresetLabel);
+    addChildComponent(modifierPresetMenu);
     
     addAndMakeVisible(modifierSelect);
     addAndMakeVisible(modifierFunction);
@@ -247,6 +254,9 @@ void Modifier::paint(juce::Graphics& g) {
         modifierEquation.setVisible(false);
         modifierEquationLabel.setVisible(false);
         
+        modifierPresetLabel.setVisible(false);
+        modifierPresetMenu.setVisible(false);
+        
     } else if(mode == MODE_EUCLIDEAN) {
         
         modifierChangeMode.setButtonText("Euclidean");
@@ -270,6 +280,9 @@ void Modifier::paint(juce::Graphics& g) {
         modifierEquation.setVisible(false);
         modifierEquationLabel.setVisible(false);
         
+        modifierPresetLabel.setVisible(true);
+        modifierPresetMenu.setVisible(true);
+        
     } else if(mode == MODE_EQUATION) {
        
         modifierChangeMode.setButtonText("Equation");
@@ -290,6 +303,9 @@ void Modifier::paint(juce::Graphics& g) {
         
         modifierEquation.setVisible(true);
         modifierEquationLabel.setVisible(true);
+        
+        modifierPresetLabel.setVisible(false);
+        modifierPresetMenu.setVisible(false);
        
    }
     
@@ -319,6 +335,9 @@ void Modifier::resized() {
     
     modifierEquationLabel.setBounds(200, 40, 150, 20);
     modifierEquation.setBounds(200, 60, 150, 20);
+    
+    modifierPresetLabel.setBounds(15, 40, 120, 20);
+    modifierPresetMenu.setBounds(15, 60, 120, 20);
     
 }
 
@@ -483,4 +502,28 @@ std::string Modifier::toString() {
     output += "step " + std::to_string(step) + "\n";
     output += "}\n";
     return output;
+}
+
+void Modifier::populatePresets() {
+    // populating with some examples from the euclidean rhythms paper
+    //euclideanPresets.push_back({ "Afro-Cuban", 2, 3 });
+    euclideanPresets.push_back({ "Khafif-e-ramal", 2, 5 });
+    euclideanPresets.push_back({ "tresillo", 3, 8 });
+    euclideanPresets.push_back({ "Agsag-Samai", 5, 9 });
+    
+    for(int i = 0; i < euclideanPresets.size(); i++) {
+        modifierPresetMenu.addItem(euclideanPresets.at(i).name, i+1);
+    }
+}
+
+void Modifier::selectPreset() {
+    int id = modifierPresetMenu.getSelectedId();
+    
+    if(id > 0) {
+        euclideanPreset preset = euclideanPresets.at(id-1);
+        
+        interval = (double)preset.interval;
+        min = (double)preset.hits;
+    }
+    modifierPresetMenu.setSelectedId(0);
 }

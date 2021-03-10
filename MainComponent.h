@@ -88,6 +88,7 @@ private:
     juce::TextButton saveStateButton;
     juce::TextButton loadStateButton;
     juce::TextButton modifierAddButton;
+    juce::TextButton newProjectButton;
     
     juce::AudioFormatManager formatManager;
     
