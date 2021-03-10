@@ -55,9 +55,15 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     modifierStep.setValue(step, juce::dontSendNotification);
     modifierStep.onValueChange = [this] { getParams(); };
     
-    
     modifierChangeMode.setButtonText("Random");
     modifierChangeMode.onClick = [this] { changeMode(); };
+    
+    modifierEquation.setText(equation, juce::dontSendNotification);
+    modifierEquation.onTextChange = [this] { getParams(); };
+    modifierEquationLabel.setText("Equation", juce::dontSendNotification);
+    
+    addChildComponent(modifierEquation);
+    addChildComponent(modifierEquationLabel);
     
     addAndMakeVisible(modifierSelect);
     addAndMakeVisible(modifierFunction);
@@ -93,8 +99,10 @@ void Modifier::changeMode() {
     } else if(mode == MODE_EUCLIDEAN) {
         
         // set mode to MODE_RANDOM
-        mode = MODE_RANDOM;
+        mode = MODE_EQUATION;
 
+    } else if(mode == MODE_EQUATION) {
+        mode = MODE_RANDOM;
     }
     
     slidersChanged = true;
@@ -219,27 +227,71 @@ void Modifier::paint(juce::Graphics& g) {
     
     if(mode == MODE_RANDOM) {
         
+        
         modifierChangeMode.setButtonText("Random");
+        
+        modifierMin.setVisible(true);
+        modifierMinLabel.setVisible(true);
         modifierMinLabel.setText("Minimum value", juce::dontSendNotification);
+        
         modifierMax.setVisible(true);
         modifierMaxLabel.setVisible(true);
+        
+        modifierStep.setVisible(true);
+        modifierStepLabel.setVisible(true);
         modifierStepLabel.setText("Value step", juce::dontSendNotification);
+        
         modifierIntervalLabel.setText("Interval (beats)", juce::dontSendNotification);
         modifierFunction.setVisible(true);
         modifierFunctionLabel.setVisible(true);
+        modifierEquation.setVisible(false);
+        modifierEquationLabel.setVisible(false);
         
     } else if(mode == MODE_EUCLIDEAN) {
         
         modifierChangeMode.setButtonText("Euclidean");
+        
+        modifierMin.setVisible(true);
+        modifierMinLabel.setVisible(true);
         modifierMinLabel.setText("Hits per cycle", juce::dontSendNotification);
+        
         modifierMax.setVisible(false);
         modifierMaxLabel.setVisible(false);
+        
+        modifierStep.setVisible(true);
+        modifierStepLabel.setVisible(true);
         modifierStepLabel.setText("Rhythm pulse length (beats)", juce::dontSendNotification);
+        
         modifierIntervalLabel.setText("Euclidean rhythm length", juce::dontSendNotification);
+        
         modifierFunction.setVisible(false);
         modifierFunctionLabel.setVisible(false);
         
-    }
+        modifierEquation.setVisible(false);
+        modifierEquationLabel.setVisible(false);
+        
+    } else if(mode == MODE_EQUATION) {
+       
+        modifierChangeMode.setButtonText("Equation");
+        
+        modifierMin.setVisible(false);
+        modifierMinLabel.setVisible(false);
+        
+        modifierMax.setVisible(false);
+        modifierMaxLabel.setVisible(false);
+        
+        modifierStep.setVisible(false);
+        modifierStepLabel.setVisible(false);
+
+        modifierIntervalLabel.setText("Interval", juce::dontSendNotification);
+        
+        modifierFunction.setVisible(true);
+        modifierFunctionLabel.setVisible(true);
+        
+        modifierEquation.setVisible(true);
+        modifierEquationLabel.setVisible(true);
+       
+   }
     
     slidersChanged = false;
 }
@@ -264,6 +316,9 @@ void Modifier::resized() {
     modifierChangeMode.setBounds(550, 5, 120, 20);
     
     modifierPosition.setBounds(700, 5, 50, 20);
+    
+    modifierEquationLabel.setBounds(200, 40, 150, 20);
+    modifierEquation.setBounds(200, 60, 150, 20);
     
 }
 
@@ -402,8 +457,10 @@ void Modifier::getParams() {
             Sample *sample = samples->at(sampleIndex);
             sample->setInterval(interval);
         }
-    } else {
-        // nothing for now...
+    } else if(mode == MODE_EQUATION) {
+        equation = modifierEquation.getText().toStdString();
+        
+        // somehow parse this lol
     }
 }
 

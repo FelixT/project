@@ -60,6 +60,10 @@ private:
     juce::Label modifierStepLabel;
     juce::Slider modifierStep;
     juce::TextButton modifierChangeMode;
+    juce::TextEditor modifierEquation;
+    juce::Label modifierEquationLabel;
+    
+    std::string equation = "x";
     
     juce::Label modifierPosition;
     
@@ -76,7 +80,8 @@ private:
     
     enum modifierMode {
         MODE_RANDOM,
-        MODE_EUCLIDEAN
+        MODE_EUCLIDEAN,
+        MODE_EQUATION
     };
     
     modifierMode mode = MODE_RANDOM;
