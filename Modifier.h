@@ -61,6 +61,8 @@ private:
     juce::Slider modifierStep;
     juce::TextButton modifierChangeMode;
     
+    juce::Label modifierPosition;
+    
     double interval = 16.0;
     double min = 2.0;
     double max = 4.0;
@@ -85,6 +87,7 @@ private:
     long roundedInterval;
     long roundedStep;
     
+    juce::Colour background = juce::Colour(100, 100, 100);
     
     int tmp = 0; // delete this
 };

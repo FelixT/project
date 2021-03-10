@@ -72,6 +72,7 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     addAndMakeVisible(modifierStepLabel);
     addAndMakeVisible(modifierFunctionLabel);
     addAndMakeVisible(modifierSelectLabel);
+    addAndMakeVisible(modifierPosition);
     
 }
 
@@ -198,9 +199,14 @@ void Modifier::updateDropdown() {
 }
 
 void Modifier::paint(juce::Graphics& g) {
-    g.setColour(juce::Colour(100, 100, 100));
+    //g.setColour(juce::Colour(100, 100, 100));
+    g.setColour(background);
+    
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 20.f);
     //updateDropdown(); // this shouldn't really be called from the graphics thread
+    
+    // update position
+    modifierPosition.setText(std::to_string(euclideanPosition), juce::dontSendNotification);
     
     // make sliders reflect true values
     modifierInterval.setValue(interval, juce::dontSendNotification);
@@ -257,6 +263,8 @@ void Modifier::resized() {
     
     modifierChangeMode.setBounds(550, 5, 120, 20);
     
+    modifierPosition.setBounds(700, 5, 50, 20);
+    
 }
 
 void Modifier::setInterval(double val) {
@@ -287,6 +295,8 @@ void Modifier::setSample(int index) {
 void Modifier::setMode(int index) {
     mode = (modifierMode)index;
     slidersChanged = true;
+    
+    getParams();
 }
 
 void Modifier::setFunction(int index) {
@@ -316,9 +326,15 @@ void Modifier::tickEuclidean(long roundedBeat, long prevBeat) {
             Sample *sample = samples->at(sampleIndex);
         
             if(modifierEuclideanRhythm.at(euclideanPosition)) {
+                // play
+                background = juce::Colour(50, 100, 50);
+                juce::MessageManager::callAsync ([this] { repaint(); });
                 //std::cout << "1";
                 sample->setInterval(step); // play immediately?
             } else {
+                // don't play
+                background = juce::Colour(100, 100, 100);
+                juce::MessageManager::callAsync ([this] { repaint(); });
                 //std::cout << "0";
                 sample->setInterval(interval);
             }
