@@ -10,6 +10,11 @@
 
 #include <stdio.h>
 #include <JuceHeader.h>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <stack>
+#include <cctype>
 
 #include "Sample.h"
 
@@ -37,10 +42,12 @@ private:
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
     void tickEuclidean(long roundedBeat, long prevBeat);
     void tickRandom(long roundedBeat, long prevBeat);
+    void tickEquation(long roundedBeat, long prevBeat);
     void getParams();
     void changeMode();
     void populatePresets();
     void selectPreset();
+    double parseEquation(std::string input);
     
     enum modifierState {
         MODIFIER_IDLE,

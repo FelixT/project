@@ -293,8 +293,9 @@ void Modifier::paint(juce::Graphics& g) {
         modifierMax.setVisible(false);
         modifierMaxLabel.setVisible(false);
         
-        modifierStep.setVisible(false);
-        modifierStepLabel.setVisible(false);
+        modifierStep.setVisible(true);
+        modifierStepLabel.setVisible(true);
+        modifierStepLabel.setText("Rhythm pulse length (beats)", juce::dontSendNotification);
 
         modifierIntervalLabel.setText("Interval", juce::dontSendNotification);
         
@@ -445,12 +446,39 @@ void Modifier::tickRandom(long roundedBeat, long prevBeat) {
     }
 }
 
+void Modifier::tickEquation(long roundedBeat, long prevBeat) {
+    
+    if((roundedBeat > prevBeat) && ((roundedBeat % roundedStep) == 0)) {
+        euclideanPosition+=1;
+        euclideanPosition%=(int)interval;
+        
+        if(sampleIndex >= 0 & sampleIndex < samples->size()) {
+           // valid sample selected
+            Sample *sample = samples->at(sampleIndex);
+            
+            double newVal = parseEquation(modifierEquation.getText().toStdString());
+            std::cout << newVal << std::endl;
+            
+            if(newVal <= 0) return;
+            
+            if(functionIndex == MODIFIER_INTERVAL)
+                sample->setInterval(newVal);
+            if(functionIndex == MODIFIER_DELAY)
+                sample->setDelay(newVal);
+            if(functionIndex == MODIFIER_BPM)
+                sample->setBpm(newVal);
+        }
+    }
+}
+
 void Modifier::tick(long roundedBeat, long prevBeat) {
     if(mode == MODE_EUCLIDEAN) {
         tickEuclidean(roundedBeat, prevBeat);
     } else if(mode == MODE_RANDOM) {
         tickRandom(roundedBeat, prevBeat);
-    }
+    } else if(mode == MODE_EQUATION) {
+       tickEquation(roundedBeat, prevBeat);
+   }
 }
 
 void Modifier::getParams() {
@@ -502,6 +530,92 @@ std::string Modifier::toString() {
     output += "step " + std::to_string(step) + "\n";
     output += "}\n";
     return output;
+}
+
+double Modifier::parseEquation(std::string input) {
+    std::stack<double> st;
+    
+    // split equation by space into tokens
+    
+    std::string tmp;
+    std::stringstream ss(input);
+    std::vector<std::string> tokens;
+    
+    while(ss >> tmp)
+        tokens.push_back(tmp);
+
+    // parse these tokens using RPN
+    
+    for(int i = 0; i < tokens.size(); i++) {
+        
+        // add numbers / variables to stack
+        
+        bool isNumber = (tokens.at(i).find_first_not_of( "0123456789" ) == std::string::npos); // from https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int/37864920
+        bool isVariable = (tokens.at(i).length() == 1) && (isupper(tokens.at(i).at(0)));
+        
+        if(isNumber) st.push((double)std::stoi(tokens.at(i)));
+        if(isVariable) st.push((double)euclideanPosition); // let all variables be euclideanPosition for now? haha
+        
+        
+        // TODO: otherwise throw error
+        
+        // functions
+        if(tokens.at(i) == "+") {
+            if(st.size() < 2) return -1;
+            
+            double arg2 = st.top();
+            st.pop();
+            double arg1 = st.top();
+            st.pop();
+            
+            double result = arg1 + arg2;
+            st.push(result);
+        }
+        
+        if(tokens.at(i) == "-") {
+            if(st.size() < 2) return -1;
+            
+            double arg2 = st.top();
+            st.pop();
+            double arg1 = st.top();
+            st.pop();
+            
+            double result = arg1 - arg2;
+            st.push(result);
+        }
+        
+        if(tokens.at(i) == "*") {
+            if(st.size() < 2) return -1;
+            
+            double arg2 = st.top();
+            st.pop();
+            double arg1 = st.top();
+            st.pop();
+            
+            double result = arg1 * arg2;
+            st.push(result);
+        }
+        
+        if(tokens.at(i) == "/") {
+            if(st.size() < 2) return -1;
+            
+            double arg2 = st.top();
+            st.pop();
+            double arg1 = st.top();
+            st.pop();
+            
+            if(arg2 == 0) return -1;
+            
+            double result = arg1 / arg2;
+            st.push(result);
+        }
+        
+        
+    }
+    
+    // return top of stack
+    if(st.size() > 0) return st.top();
+    else return -1;
 }
 
 void Modifier::populatePresets() {
