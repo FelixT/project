@@ -20,7 +20,7 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     void getValue(float &outLeft, float &outRight, long roundedBeat, long prevBeat);
-    void updateParams(float trackBpm, int precision);
+    void updateParams(double trackBpm, int precision);
     void updateBuffers(int numSamples);
     std::string toString();
     void setLabel(std::string label);
@@ -68,7 +68,7 @@ private:
     juce::AudioFormatReader *sampleReader = nullptr;
     juce::AudioBuffer<float> *sampleBuffer = nullptr;
     
-    float curPos = 0.f;
+    double curPos = 0.0;
     
     double sampleBpm = 120.0;
     double interval = 1.0;
@@ -78,9 +78,9 @@ private:
     double cropLeft = 0.0;
     double cropRight = 0.0;
     
-    float playbackRate = 0.f;
-    float startPos = 0.f;
-    float endPos = 0.f;
+    double playbackRate = 0.0;
+    double startPos = 0.0;
+    double endPos = 0.0;
     
     long roundedInterval = 1;
     long roundedDelay = 0;

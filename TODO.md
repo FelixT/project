@@ -16,3 +16,5 @@
 14) Tool tips and explanations 
 15) Muting, soloing, etc
 16) Delete samples & modifiers
+17) Adjust playback for sample rates!!
+18) Don't crash when devices change

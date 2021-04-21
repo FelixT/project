@@ -32,6 +32,8 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleBpmLabel.setText("Sample BPM", juce::dontSendNotification);
     sampleBpmLabel.setJustificationType(juce::Justification::right);
         
+    sampleCropRightSlider.onValueChange = [this] { getParams(); };
+    sampleCropRightLabel.setText("Crop sample (right %)", juce::dontSendNotification);
     // crop
     sampleCropLeftSlider.setRange(cropLeft, 100, 0.01);
     sampleCropLeftSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
@@ -41,8 +43,6 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     
     sampleCropRightSlider.setRange(cropRight, 100, 0.01);
     sampleCropRightSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
-    sampleCropRightSlider.onValueChange = [this] { getParams(); };
-    sampleCropRightLabel.setText("Crop sample (right %)", juce::dontSendNotification);
     sampleCropRightLabel.setJustificationType(juce::Justification::right);
     
     //interval
@@ -266,10 +266,10 @@ void Sample::getParams() {
     cropRight = sampleCropRightSlider.getValue();
 }
 
-void Sample::updateParams(float trackBpm, int precision) {
+void Sample::updateParams(double trackBpm, int precision) {
     // calculations
     playbackRate = trackBpm / sampleBpm;
-    if(trackBpm == 0.f) playbackRate = 0.f;
+    if(trackBpm == 0.0) playbackRate = 0.0;
     roundedInterval = pow10(interval, precision);
     roundedDelay = pow10(delay, precision);
 }
@@ -282,8 +282,8 @@ void Sample::updateBuffers(int numSamples) {
     inLeftBuffer = sampleFill.buffer->getReadPointer(0, 0);
     inRightBuffer = sampleFill.buffer->getReadPointer(1, 0);
     
-    startPos = (float)cropLeft * 0.01f * sampleBuffer->getNumSamples();
-    endPos = (1.f - ((float)cropRight * 0.01f)) * sampleBuffer->getNumSamples();
+    startPos = cropLeft * 0.01 * sampleBuffer->getNumSamples();
+    endPos = (1.0 - (cropRight * 0.01)) * sampleBuffer->getNumSamples();
 }
 
 void Sample::setLabel(std::string label) {

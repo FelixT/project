@@ -327,9 +327,9 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     float* rightBuffer = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
         
     // BEAT/SAMPLE CALCULATIONS
-    float beatFrequency = (float)bpmSlider.getValue()/60.f; // Hz (beats/second)
-    samplesPerBeat = (float)curSampleRate / beatFrequency; // samples/beat
-    beatsPerSample = 1.f / samplesPerBeat; // i.e. delta beat added for each sample
+    double beatFrequency = bpmSlider.getValue()/60.0; // Hz (beats/second)
+    samplesPerBeat = curSampleRate / beatFrequency; // samples/beat
+    beatsPerSample = 1.0 / samplesPerBeat; // i.e. delta beat added for each sample
     masterVolume = (float)masterVolumeSlider.getValue();
     
     // SINE
@@ -372,7 +372,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // samples
         for(int i = 0; i < samples.size(); i++) {
             Sample *sample = samples.at(i);
-            sample->updateParams((float)bpmSlider.getValue(), precision);
+            sample->updateParams(bpmSlider.getValue(), precision);
             sample->getValue(outLeft, outRight, roundBeat, prevBeat);
         }
         

@@ -53,15 +53,15 @@ private:
     long pow10(float input, int power);
     
     double curSampleRate = 0.0;
-    float curBeat = 0.f;
+    double curBeat = 0.0;
     
     float curWaveAngle = 0.f;
     bool waveEnabled = true;
     float waveAngleDelta = 0.f;
     float waveNoteLength = 0.f;
     
-    float samplesPerBeat = 0.f;
-    float beatsPerSample = 0.f; // equal to 1/samplesPerBeat
+    double samplesPerBeat = 0.f;
+    double beatsPerSample = 0.f; // equal to 1/samplesPerBeat
     
     float beatDelta = 0.f; // number 
     
