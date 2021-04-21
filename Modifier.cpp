@@ -22,13 +22,15 @@
 // by Godfried Toussaint
 // http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf
 
-Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
+Modifier::Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer) {
     samples = samplesPointer;
+    modifiers = modifiersPointer;
     
     modifierFunction.addItem("Interval", 1);
     modifierFunction.addItem("Delay", 2);
     modifierFunction.addItem("BPM", 3);
     updateDropdown();
+    
     
     modifierFunctionLabel.setText("Parameter to modify:", juce::dontSendNotification);
     modifierFunction.onChange = [this] { getParams(); };
@@ -278,10 +280,21 @@ std::vector<bool> Modifier::genEuclideanRhythm(int length, int pulses) {
 void Modifier::updateDropdown() {
     int id = modifierSelect.getSelectedId();
     modifierSelect.clear(juce::dontSendNotification);
+    
+    // samples
     for(int i = 0; i < samples->size(); i++) {
-        const juce::String label = samples->at(i)->getLabel();
+        const juce::String label = "SAMPLE " + samples->at(i)->getLabel();
         modifierSelect.addItem(label, i+1);
     }
+    
+    /*modifierSelect.addSeparator();
+    
+    // modifiers
+    for(int i = 0; i < modifiers->size(); i++) {
+        const juce::String label = "MODIFIER " + std::to_string(i);
+        modifierSelect.addItem(label, i+samples->size()+1);
+    }*/
+    
     modifierSelect.setSelectedId(id, juce::dontSendNotification);
 }
 
@@ -290,7 +303,6 @@ void Modifier::paint(juce::Graphics& g) {
     g.setColour(background);
     
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.f);
-    //updateDropdown(); // this shouldn't really be called from the graphics thread
     
     // update position
     modifierPosition.setText(std::to_string(euclideanPosition), juce::dontSendNotification);
@@ -783,7 +795,7 @@ void Modifier::selectPreset() {
 std::string Modifier::toolTip() {
     std::string str;
     
-    std::string sampleName = modifierSelect.getName().toStdString();
+    std::string sampleName = modifierSelect.getText().toStdString();
     if(sampleName.empty()) sampleName = "<not selected>";
     std::string parameterName = modifierFunction.getText().toStdString();
     if(parameterName.empty()) parameterName = "<not selected>";

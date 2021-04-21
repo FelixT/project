@@ -286,7 +286,7 @@ void MainComponent::addSample() {
 }
 
 void MainComponent::addModifier() {
-    Modifier *modifier = new Modifier(&samples);
+    Modifier *modifier = new Modifier(&samples, &modifiers);
     modifiers.push_back(modifier);
     
     modifiersComponent.addAndMakeVisible(modifier);

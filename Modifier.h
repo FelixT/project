@@ -21,7 +21,7 @@
 class Modifier : public juce::Component {
     
 public:
-    Modifier(std::vector<Sample*> *samplesPointer);
+    Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer);
     ~Modifier();
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -112,6 +112,7 @@ private:
     int euclideanPosition = -1;
     
     std::vector<Sample*> *samples;
+    std::vector<Modifier*> *modifiers;
     long roundedInterval;
     long roundedStep;
     
