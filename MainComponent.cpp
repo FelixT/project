@@ -42,7 +42,7 @@ MainComponent::MainComponent()
     modifierAddButton.onClick = [this] { addModifier(); };
     
     newProjectButton.setButtonText("New project");
-    newProjectButton.onClick = [this] { resetSamples(); resetModifiers(); curBeat = -0.1f; prevBeat = -0.2f; };
+    newProjectButton.onClick = [this] { resetSamples(); resetModifiers(); curBeat = -0.1f; prevBeat = -0.2f; resized(); };
 
     samplesViewport.setViewedComponent(&samplesComponent, false);
     modifiersViewport.setViewedComponent(&modifiersComponent, false);
@@ -345,7 +345,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     for(int i = 0; i < samples.size(); i++) {
         Sample *sample = samples.at(i);
         if(sample->isLoaded) {
-            sample->updateParams((float)bpmSlider.getValue(), precision, bufferToFill.numSamples);
+            sample->updateBuffers(bufferToFill.numSamples);
         }
     }
         
@@ -372,6 +372,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // samples
         for(int i = 0; i < samples.size(); i++) {
             Sample *sample = samples.at(i);
+            sample->updateParams((float)bpmSlider.getValue(), precision);
             sample->getValue(outLeft, outRight, roundBeat, prevBeat);
         }
         
@@ -469,20 +470,20 @@ void MainComponent::resized()
     
     int samplesHeight = avaliableHeight/2 - 25;
     
-    samplesViewport.setBounds(0, 150, width, samplesHeight);
+    samplesViewport.setBounds(0, 150, width, samplesHeight); 
     
     int relativeY = 0;
-    int margin = 10; // (bottom)
+    int margin = 2; // (bottom)
 
     for(int i = 0; i < samples.size(); i++) {
         if(samples[i]->isCollapsed()) {
             int height = 40;
-            samples[i]->setBounds(0, relativeY, width, height-margin);
+            samples[i]->setBounds(margin, relativeY + margin, width - 2*margin, height - 2*margin);
             relativeY+=height;
             
         } else {
             int height = 140;
-            samples[i]->setBounds(0, relativeY, width, height-margin);
+            samples[i]->setBounds(margin, relativeY + margin, width - 2*margin, height- 2*margin);
             relativeY+=height;
         }
     }
@@ -499,7 +500,7 @@ void MainComponent::resized()
     
     for(int i = 0; i < modifiers.size(); i++) {
         int height = 100;
-        modifiers[i]->setBounds(0, relativeY, width, height-margin);
+        modifiers[i]->setBounds(margin, relativeY + margin, width - 2*margin, height - 2*margin);
         relativeY+=height;
     }
 

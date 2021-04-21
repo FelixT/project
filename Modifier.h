@@ -48,6 +48,7 @@ private:
     void populatePresets();
     void selectPreset();
     double parseEquation(std::string input);
+    std::string toolTip();
     
     enum modifierState {
         MODIFIER_IDLE,
@@ -81,13 +82,16 @@ private:
     juce::Label modifierEquationLabel;
     juce::Label modifierPresetLabel;
     juce::ComboBox modifierPresetMenu;
+    juce::TextButton modifierHelp;
+    juce::TextButton modifierForward;
+    juce::TextButton modifierBack;
     
-    std::string equation = "x";
+    std::string equation = "X";
     
     juce::Label modifierPosition;
     
     double interval = 16.0;
-    double min = 2.0;
+    double min = 2.0; // integer doubles up as number of pulses in a Euclidean rhythm
     double max = 4.0;
     double step = 0.25;
     int sampleIndex = -1;

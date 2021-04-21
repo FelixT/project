@@ -1,9 +1,7 @@
 #  TODO
 
 1) Fix euclidean rhythm generation
-2) Store each slider value in class
-    - Use onchange to update these values
-    - Update sliders to reflect these every tick
+2) Allow sample labels to be changed
 3) make curbeat a double / work out precision issues 
 4) dont redraw beat constantly 
 5) update modifier usability
@@ -15,4 +13,6 @@
 11) option of which beat to start euclidean on
 12) equations
 13) modifiers of modifiers 
-
+14) Tool tips and explanations 
+15) Muting, soloing, etc
+16) Delete samples & modifiers

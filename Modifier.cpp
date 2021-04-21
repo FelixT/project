@@ -58,6 +58,20 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     modifierChangeMode.setButtonText("Random");
     modifierChangeMode.onClick = [this] { changeMode(); };
     
+    modifierHelp.setButtonText("?");
+    modifierHelp.onClick = [this] {
+        // TODO: change this to be a tool tip
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::AlertIconType::InfoIcon, "Modifier Help", toolTip());
+    };
+    
+    modifierBack.setButtonText("<");
+    modifierBack.onClick = [this] { euclideanPosition-=1; euclideanPosition%=modifierEuclideanRhythm.size(); };
+    
+    modifierForward.setButtonText(">");
+    modifierForward.onClick = [this] { euclideanPosition+=1; euclideanPosition%=modifierEuclideanRhythm.size(); };
+    
+    modifierPosition.setJustificationType(juce::Justification::centred);
+    
     modifierEquation.setText(equation, juce::dontSendNotification);
     modifierEquation.onTextChange = [this] { getParams(); };
     modifierEquationLabel.setText("Equation", juce::dontSendNotification);
@@ -72,6 +86,10 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     addChildComponent(modifierPresetLabel);
     addChildComponent(modifierPresetMenu);
     
+    addChildComponent(modifierBack);
+    addChildComponent(modifierForward);
+    addChildComponent(modifierPosition);
+    
     addAndMakeVisible(modifierSelect);
     addAndMakeVisible(modifierFunction);
     addAndMakeVisible(modifierInterval);
@@ -85,7 +103,8 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer) {
     addAndMakeVisible(modifierStepLabel);
     addAndMakeVisible(modifierFunctionLabel);
     addAndMakeVisible(modifierSelectLabel);
-    addAndMakeVisible(modifierPosition);
+    addAndMakeVisible(modifierHelp);
+
     
 }
 
@@ -115,21 +134,23 @@ void Modifier::changeMode() {
     slidersChanged = true;
     
     getParams();
+    
+    std::cout << toolTip() << std::endl;
 }
 
 void euclideanRhythm(int &numLeft, int &numRight, std::vector<bool> &vecLeft, std::vector<bool> &vecRight) {
     // display input
-    //std::cout << numLeft << "x[";
+    std::cout << numLeft << "x[";
     for(int i = 0; i < vecLeft.size(); i++) {
-        //if(vecLeft.at(i)) std::cout << "1";
-        //else std::cout << "0";
+        if(vecLeft.at(i)) std::cout << "1";
+        else std::cout << "0";
     }
-    //std::cout << "], " << numRight << "x[";
+    std::cout << "], " << numRight << "x[";
     for(int i = 0; i < vecRight.size(); i++) {
-        //if(vecRight.at(i)) std::cout << "1";
-        //else std::cout << "0";
+        if(vecRight.at(i)) std::cout << "1";
+        else std::cout << "0";
     }
-    //std::cout << "]" << std::endl;
+    std::cout << "]" << std::endl;
     
     // calculate next interation
     
@@ -166,6 +187,57 @@ void euclideanRhythm(int &numLeft, int &numRight, std::vector<bool> &vecLeft, st
     euclideanRhythm(numLeft, numRight, vecLeft, vecRight);
 }
 
+void euclideanRhythmFix(int &numLeft, int &numRight, std::vector<bool> &vecLeft, std::vector<bool> &vecRight) {
+    // display input
+    std::cout << numLeft << "x[";
+    for(int i = 0; i < vecLeft.size(); i++) {
+        if(vecLeft.at(i)) std::cout << "1";
+        else std::cout << "0";
+    }
+    std::cout << "], " << numRight << "x[";
+    for(int i = 0; i < vecRight.size(); i++) {
+        if(vecRight.at(i)) std::cout << "1";
+        else std::cout << "0";
+    }
+    std::cout << "]" << std::endl;
+    
+    // calculate next interation
+    
+    if(numRight <= 1) return; // stopping condition of euclid
+    
+    int oldLeftLen = (int)vecLeft.size();
+    
+    bool firstIteration = numLeft < numRight;
+    
+    if(firstIteration) {
+        std::swap(numLeft, numRight);
+    }
+    
+    // new left becomes old left + elements from old right
+    
+    for(int i = 0; i < numLeft/numRight; i++) { // division thing isnt right
+        for(int x = 0; x < vecRight.size(); x++) {
+            vecLeft.push_back(vecRight.at(x));
+        }
+    }
+    
+    // new right becomes old left, except if its the first iteration
+    if(!firstIteration) {
+        vecRight.clear();
+        for(int i = 0; i < oldLeftLen; i++) {
+            vecRight.push_back(vecLeft.at(i));
+        }
+    }
+    
+    int newLeft = numRight;
+    int newRight = numLeft % numRight;
+    
+    numLeft = newLeft;
+    numRight = newRight;
+    
+    euclideanRhythmFix(numLeft, numRight, vecLeft, vecRight);
+}
+
 std::vector<bool> Modifier::genEuclideanRhythm(int length, int pulses) {
     int breaks = length - pulses;
     
@@ -177,7 +249,7 @@ std::vector<bool> Modifier::genEuclideanRhythm(int length, int pulses) {
     
     int numLeft = pulses;
     int numRight = breaks;
-    euclideanRhythm(numLeft, numRight, vecLeft, vecRight);
+    euclideanRhythmFix(numLeft, numRight, vecLeft, vecRight);
     
     // recombine
     std::vector<bool> output;
@@ -193,12 +265,12 @@ std::vector<bool> Modifier::genEuclideanRhythm(int length, int pulses) {
     }
     
     // display output
-    //std::cout << std::endl;
+    std::cout << std::endl;
     for(int i = 0; i < output.size(); i++) {
-        //if(output.at(i)) std::cout << "1";
-        //else std::cout << "0";
+        if(output.at(i)) std::cout << "1";
+        else std::cout << "0";
     }
-    //std::cout << std::endl;
+    std::cout << std::endl;
     
     return output;
 }
@@ -217,7 +289,7 @@ void Modifier::paint(juce::Graphics& g) {
     //g.setColour(juce::Colour(100, 100, 100));
     g.setColour(background);
     
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), 20.f);
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.f);
     //updateDropdown(); // this shouldn't really be called from the graphics thread
     
     // update position
@@ -257,6 +329,11 @@ void Modifier::paint(juce::Graphics& g) {
         modifierPresetLabel.setVisible(false);
         modifierPresetMenu.setVisible(false);
         
+        modifierPosition.setVisible(false);
+        
+        modifierBack.setVisible(false);
+        modifierForward.setVisible(false);
+        
     } else if(mode == MODE_EUCLIDEAN) {
         
         modifierChangeMode.setButtonText("Euclidean");
@@ -283,6 +360,33 @@ void Modifier::paint(juce::Graphics& g) {
         modifierPresetLabel.setVisible(true);
         modifierPresetMenu.setVisible(true);
         
+        modifierPosition.setVisible(true);
+        
+        modifierBack.setVisible(true);
+        modifierForward.setVisible(true);
+        
+        if(modifierEuclideanRhythm.size() >= 0) {
+            // paint graphical representation of the euclidean rhythm
+            int x = 550;
+            int y = 25;
+            
+            // white background rectangle
+            g.setColour(juce::Colours::white);
+            g.fillRoundedRectangle(x, y, 20*modifierEuclideanRhythm.size(), 20, 4.f);
+            
+            for(int i = 0; i < modifierEuclideanRhythm.size(); i++) {
+                if(modifierEuclideanRhythm.at(i)) g.setColour(juce::Colours::green);
+                else g.setColour(juce::Colours::red);
+                
+                if(euclideanPosition == i) g.setOpacity(1.0f);
+                else g.setOpacity(0.6f);
+                
+                
+                g.fillRoundedRectangle(x+1, y+1, 20-2, 20-2, 7.f);
+                x+=20;
+            }
+        }
+        
     } else if(mode == MODE_EQUATION) {
        
         modifierChangeMode.setButtonText("Equation");
@@ -307,6 +411,11 @@ void Modifier::paint(juce::Graphics& g) {
         
         modifierPresetLabel.setVisible(false);
         modifierPresetMenu.setVisible(false);
+        
+        modifierPosition.setVisible(true);
+        
+        modifierBack.setVisible(false);
+        modifierForward.setVisible(false);
        
    }
     
@@ -332,7 +441,11 @@ void Modifier::resized() {
     
     modifierChangeMode.setBounds(550, 5, 120, 20);
     
-    modifierPosition.setBounds(700, 5, 50, 20);
+    modifierBack.setBounds(465, 25, 25, 20);
+    modifierPosition.setBounds(490, 25, 25, 20);
+    modifierForward.setBounds(515, 25, 25, 20);
+    
+    modifierHelp.setBounds(680, 5, 20, 20);
     
     modifierEquationLabel.setBounds(200, 40, 150, 20);
     modifierEquation.setBounds(200, 60, 150, 20);
@@ -405,13 +518,21 @@ void Modifier::tickEuclidean(long roundedBeat, long prevBeat) {
                 background = juce::Colour(50, 100, 50);
                 juce::MessageManager::callAsync ([this] { repaint(); });
                 //std::cout << "1";
+                //sample->setDelay(0);
                 sample->setInterval(step); // play immediately?
             } else {
                 // don't play
                 background = juce::Colour(100, 100, 100);
                 juce::MessageManager::callAsync ([this] { repaint(); });
                 //std::cout << "0";
-                sample->setInterval(interval);
+                
+                // disable the sample from starting for an interval of 'step'
+                sample->setInterval(step);
+                sample->disable();
+                
+                //sample->setInterval(interval); // disable
+                //if(sample->getDelay() == step) sample->setDelay(0);
+                //else sample->setDelay(step);
             }
         }
     }
@@ -454,12 +575,14 @@ void Modifier::tickEquation(long roundedBeat, long prevBeat) {
         
         if(sampleIndex >= 0 & sampleIndex < samples->size()) {
            // valid sample selected
+            
+            juce::MessageManager::callAsync ([this] { repaint(); });
             Sample *sample = samples->at(sampleIndex);
             
             double newVal = parseEquation(modifierEquation.getText().toStdString());
             std::cout << newVal << std::endl;
             
-            if(newVal <= 0) return;
+            if(newVal < 0) return;
             
             if(functionIndex == MODIFIER_INTERVAL)
                 sample->setInterval(newVal);
@@ -610,6 +733,16 @@ double Modifier::parseEquation(std::string input) {
             st.push(result);
         }
         
+        if(tokens.at(i) == "sin") {
+            if(st.size() < 1) return -1;
+            
+            double arg1 = st.top();
+            st.pop();
+            
+            double result = std::sin(arg1);
+            st.push(result);
+        }
+        
         
     }
     
@@ -638,6 +771,30 @@ void Modifier::selectPreset() {
         
         interval = (double)preset.interval;
         min = (double)preset.hits;
+        
+        int length = (int)interval;
+        int beats = (int)min;
+        
+        modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
     }
     modifierPresetMenu.setSelectedId(0);
+}
+
+std::string Modifier::toolTip() {
+    std::string str;
+    
+    std::string sampleName = modifierSelect.getName().toStdString();
+    if(sampleName.empty()) sampleName = "<not selected>";
+    std::string parameterName = modifierFunction.getText().toStdString();
+    if(parameterName.empty()) parameterName = "<not selected>";
+    
+    if(mode == MODE_RANDOM) {
+        str = "This modifier changes the sample " + sampleName + "'s " + parameterName + " to a random value between " + std::to_string(min) + " and " + std::to_string(max) + " which is divisible by " + std::to_string(step) + ", every " + std::to_string(interval) + " beats.";
+    }
+    
+    if(mode == MODE_EUCLIDEAN) {
+        str = "This modifier uses a Euclidean algorithm to generate a rhythm for sample " + sampleName + " of length " + std::to_string((int)interval) + " , containing " + std::to_string((int)min) + " pulses and " + std::to_string((int)interval-(int)min) + " breaks. Each pulse or break lasts " + std::to_string(step) + " beats.";
+    }
+    
+    return str;
 }

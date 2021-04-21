@@ -20,18 +20,21 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     void getValue(float &outLeft, float &outRight, long roundedBeat, long prevBeat);
-    void updateParams(float trackBpm, int precision, int numSamples);
+    void updateParams(float trackBpm, int precision);
+    void updateBuffers(int numSamples);
     std::string toString();
     void setLabel(std::string label);
     void setStart(double start);
     void setEnd(double end);
     void setInterval(double val);
     void setDelay(double val);
+    double getDelay();
     void setVolume(double val);
     void setPath(std::string path);
     void setBpm(double val);
     bool isCollapsed();
     void setCollapsed(bool c);
+    void disable();
     juce::String getLabel();
 
     
@@ -72,6 +75,9 @@ private:
     double delay = 0.0;
     double volume = 1.0;
     
+    double cropLeft = 0.0;
+    double cropRight = 0.0;
+    
     float playbackRate = 0.f;
     float startPos = 0.f;
     float endPos = 0.f;
@@ -84,6 +90,7 @@ private:
     
     bool isWaiting = true;
     bool slidersChanged = false;
+    bool isDisabled = false;
     
     juce::AudioFormatManager *formatManager;
     

@@ -33,13 +33,15 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleBpmLabel.setJustificationType(juce::Justification::right);
         
     // crop
-    sampleCropLeftSlider.setRange(0, 100, 0.01);
+    sampleCropLeftSlider.setRange(cropLeft, 100, 0.01);
     sampleCropLeftSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
+    sampleCropLeftSlider.onValueChange = [this] { getParams(); };
     sampleCropLeftLabel.setText("Crop sample (left %)", juce::dontSendNotification);
     sampleCropLeftLabel.setJustificationType(juce::Justification::right);
     
-    sampleCropRightSlider.setRange(0, 100, 0.01);
+    sampleCropRightSlider.setRange(cropRight, 100, 0.01);
     sampleCropRightSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
+    sampleCropRightSlider.onValueChange = [this] { getParams(); };
     sampleCropRightLabel.setText("Crop sample (right %)", juce::dontSendNotification);
     sampleCropRightLabel.setJustificationType(juce::Justification::right);
     
@@ -99,6 +101,11 @@ void Sample::setCollapsed(bool c) {
     collapsed = c;
 }
 
+// disables the sample for its interval
+void Sample::disable() {
+    isDisabled = true;
+}
+
 void Sample::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
@@ -110,13 +117,15 @@ void Sample::paint (juce::Graphics& g)
         //g.fillAll (juce::Colour(100, 100, 100));
         g.setColour(juce::Colour(100, 100, 100));
     }
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), 20.f);
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.f);
     
     // make sliders reflect true values
     sampleBpmSlider.setValue(sampleBpm);
     sampleVolumeSlider.setValue(volume*100.0);
     sampleIntervalSlider.setValue(interval);
     sampleDelaySlider.setValue(delay);
+    sampleCropLeftSlider.setValue(cropLeft);
+    sampleCropRightSlider.setValue(cropRight);
     slidersChanged = false;
 }
 
@@ -169,8 +178,8 @@ bool Sample::loadSample(juce::File file) {
         
         if(samplePath != "") {
             const std::string err = "Couldn't open file with path '" + samplePath + "'";
-            juce::AlertWindow *a = new juce::AlertWindow("ERROR", "ERROR", juce::AlertWindow::AlertIconType::WarningIcon);
-            a->showMessageBox(juce::AlertWindow::AlertIconType::WarningIcon, "ERROR", err);
+            
+            juce::AlertWindow::showMessageBox(juce::AlertWindow::AlertIconType::WarningIcon, "ERROR", err);
         }
         
         return false;
@@ -215,12 +224,19 @@ void Sample::getValue(float &outLeft, float &outRight, long roundedBeat, long pr
     // and if curBeat > previous, i.e. only calculate this every 1/(10^precision)th of a beat
     // note undefined behaviour (crash) if interval is 0
     //if((roundedBeat > prevBeat) && (((roundedBeat-roundedDelay) % roundedInterval) == 0)) {
-    if((roundedBeat > prevBeat) && (((roundedBeat-roundedDelay) % roundedInterval) == 0)) {
-        curPos = startPos;
-        isWaiting = false;
-        
-        // repaint
-        juce::MessageManager::callAsync ([this] { repaint(); });
+    if(isDisabled) {
+        // if disabled, check if we can reenable
+        if((roundedBeat > prevBeat) && (((roundedBeat-roundedDelay) % roundedInterval) == 0)) {
+            isDisabled = false;
+        }
+    } else {
+        if((roundedBeat > prevBeat) && (((roundedBeat-roundedDelay) % roundedInterval) == 0)) {
+            curPos = startPos;
+            isWaiting = false;
+            
+            // repaint
+            juce::MessageManager::callAsync ([this] { repaint(); });
+        }
     }
     
     if(!isWaiting) { // sample playing
@@ -246,32 +262,28 @@ void Sample::getParams() {
     interval = sampleIntervalSlider.getValue();
     delay = sampleDelaySlider.getValue();
     volume = sampleVolumeSlider.getValue() / 100.0;
+    cropLeft = sampleCropLeftSlider.getValue();
+    cropRight = sampleCropRightSlider.getValue();
 }
 
-void Sample::updateParams(float trackBpm, int precision, int numSamples) {
-    // get value of sliders
-    // todo: use listeners so value always correct in class
-    //sampleBpm = (float)sampleBpmSlider.getValue();
-    //interval = (float)sampleIntervalSlider.getValue();
-    //delay = (float)sampleDelaySlider.getValue();
-    //volume = (float)sampleVolumeSlider.getValue() / 100.f;
-
-    if(slidersChanged) juce::MessageManager::callAsync ([this] { repaint(); });
-    
-    startPos = (float)sampleCropLeftSlider.getValue() * 0.01f * sampleBuffer->getNumSamples();
-    endPos = (1.f - ((float)sampleCropRightSlider.getValue() * 0.01f)) * sampleBuffer->getNumSamples();
-
+void Sample::updateParams(float trackBpm, int precision) {
     // calculations
     playbackRate = trackBpm / sampleBpm;
     if(trackBpm == 0.f) playbackRate = 0.f;
     roundedInterval = pow10(interval, precision);
     roundedDelay = pow10(delay, precision);
+}
+
+void Sample::updateBuffers(int numSamples) {
+    if(slidersChanged) juce::MessageManager::callAsync ([this] { repaint(); });
     
     // get samples buffers
     const juce::AudioSourceChannelInfo sampleFill(sampleBuffer, 0, numSamples);
     inLeftBuffer = sampleFill.buffer->getReadPointer(0, 0);
     inRightBuffer = sampleFill.buffer->getReadPointer(1, 0);
     
+    startPos = (float)cropLeft * 0.01f * sampleBuffer->getNumSamples();
+    endPos = (1.f - ((float)cropRight * 0.01f)) * sampleBuffer->getNumSamples();
 }
 
 void Sample::setLabel(std::string label) {
@@ -283,21 +295,31 @@ juce::String Sample::getLabel() {
 }
 
 void Sample::setStart(double start) {
-    sampleCropLeftSlider.setValue(start);
+    //sampleCropLeftSlider.setValue(start);
+    cropLeft = start;
+    slidersChanged = true;
 }
 
 void Sample::setEnd(double end) {
-    sampleCropRightSlider.setValue(end);
+    cropRight = end;
+    //sampleCropRightSlider.setValue(end);
+    slidersChanged = true;
 }
 
 void Sample::setInterval(double val) {
+    if(val <= 0) return;
     interval = val;
+    //roundedInterval = pow10(interval, 2);
     slidersChanged = true;
 }
 
 void Sample::setDelay(double val) {
     delay = val;
     slidersChanged = true;
+}
+
+double Sample::getDelay() {
+    return delay;
 }
 
 void Sample::setVolume(double val) {
