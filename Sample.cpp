@@ -168,6 +168,7 @@ bool Sample::loadSample(juce::File file) {
 
     if(sampleReader != nullptr) {
         sampleBuffer = new juce::AudioBuffer<float>(2, sampleReader->lengthInSamples);
+        sampleRate = sampleReader->sampleRate;
 
         sampleReader->read(sampleBuffer, 0, sampleReader->lengthInSamples, 0, true, true);
         
@@ -266,9 +267,10 @@ void Sample::getParams() {
     cropRight = sampleCropRightSlider.getValue();
 }
 
-void Sample::updateParams(double trackBpm, int precision) {
+void Sample::updateParams(double trackBpm, double trackSampleRate, int precision) {
     // calculations
     playbackRate = trackBpm / sampleBpm;
+    playbackRate *= (sampleRate / trackSampleRate); // same rate adjust
     if(trackBpm == 0.0) playbackRate = 0.0;
     roundedInterval = pow10(interval, precision);
     roundedDelay = pow10(delay, precision);

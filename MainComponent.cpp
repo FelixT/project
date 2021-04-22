@@ -372,7 +372,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // samples
         for(int i = 0; i < samples.size(); i++) {
             Sample *sample = samples.at(i);
-            sample->updateParams(bpmSlider.getValue(), precision);
+            sample->updateParams(bpmSlider.getValue(), curSampleRate, precision);
             sample->getValue(outLeft, outRight, roundBeat, prevBeat);
         }
         

@@ -2,7 +2,7 @@
 
 1) Fix euclidean rhythm generation
 2) Allow sample labels to be changed
-3) make curbeat a double / work out precision issues 
+3) work out precision issues 
 4) dont redraw beat constantly 
 5) update modifier usability
 6) display visual representation of euclidean rhythms 
@@ -16,5 +16,5 @@
 14) Tool tips and explanations 
 15) Muting, soloing, etc
 16) Delete samples & modifiers
-17) Adjust playback for sample rates!!
-18) Don't crash when devices change
+17) Don't crash when devices change
+18) Make scrollbars keep position when adding/minimising 

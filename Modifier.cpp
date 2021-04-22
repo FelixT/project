@@ -619,6 +619,8 @@ void Modifier::tick(long roundedBeat, long prevBeat) {
 void Modifier::getParams() {
     std::cout << "GET PARAMS" << tmp++ << std::endl;
     
+    modifierPresetMenu.setSelectedId(0);
+    
     interval = modifierInterval.getValue();
     min = modifierMin.getValue();
     max = modifierMax.getValue();
@@ -789,7 +791,7 @@ void Modifier::selectPreset() {
         
         modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
     }
-    modifierPresetMenu.setSelectedId(0);
+    modifierPresetMenu.setSelectedId(id);
 }
 
 std::string Modifier::toolTip() {

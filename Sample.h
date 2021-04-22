@@ -20,7 +20,7 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
     void getValue(float &outLeft, float &outRight, long roundedBeat, long prevBeat);
-    void updateParams(double trackBpm, int precision);
+    void updateParams(double trackBpm, double trackSampleRate, int precision);
     void updateBuffers(int numSamples);
     std::string toString();
     void setLabel(std::string label);
@@ -81,6 +81,8 @@ private:
     double playbackRate = 0.0;
     double startPos = 0.0;
     double endPos = 0.0;
+    
+    double sampleRate = 0.0;
     
     long roundedInterval = 1;
     long roundedDelay = 0;
