@@ -8,10 +8,13 @@
 #include "Sample.h"
 
 Sample::Sample(juce::AudioFormatManager *manager) {
+    
     formatManager = manager;
     
     // label (name)
     sampleLabel.setText("Unloaded", juce::dontSendNotification);
+    sampleLabel.setEditable(true);
+    sampleLabel.setFont(juce::Font(16.f, juce::Font::bold));
     
     // collapse
     sampleCollapseButton.setButtonText("+-");
@@ -19,10 +22,12 @@ Sample::Sample(juce::AudioFormatManager *manager) {
         collapsed = !collapsed;
         getParentComponent()->getParentComponent()->getParentComponent()->getParentComponent()->resized(); // i hate this but it works...
     };
+    sampleCollapseButton.setTooltip("Minimise/maximise sample");
     
     // browse
     sampleBrowseButton.setButtonText ("Sample browser");
     sampleBrowseButton.onClick = [this] { browse(); };
+    sampleBrowseButton.setTooltip("Browse your computer to load a new sample");
     
     // bpm
     sampleBpmSlider.setRange(5, 500, 0.01);
@@ -32,18 +37,20 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleBpmLabel.setText("Sample BPM", juce::dontSendNotification);
     sampleBpmLabel.setJustificationType(juce::Justification::right);
         
-    sampleCropRightSlider.onValueChange = [this] { getParams(); };
-    sampleCropRightLabel.setText("Crop sample (right %)", juce::dontSendNotification);
     // crop
     sampleCropLeftSlider.setRange(cropLeft, 100, 0.01);
     sampleCropLeftSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
     sampleCropLeftSlider.onValueChange = [this] { getParams(); };
     sampleCropLeftLabel.setText("Crop sample (left %)", juce::dontSendNotification);
     sampleCropLeftLabel.setJustificationType(juce::Justification::right);
+    sampleCropLeftLabel.setTooltip("At what position to start the sample");
     
     sampleCropRightSlider.setRange(cropRight, 100, 0.01);
     sampleCropRightSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
+    sampleCropRightSlider.onValueChange = [this] { getParams(); };
+    sampleCropRightLabel.setText("Crop sample (right %)", juce::dontSendNotification);
     sampleCropRightLabel.setJustificationType(juce::Justification::right);
+    sampleCropRightLabel.setTooltip("At what position to end the sample");
     
     //interval
     sampleIntervalSlider.setRange(0.25, 16, 0.25);
@@ -52,6 +59,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleIntervalSlider.onValueChange = [this] { getParams(); };
     sampleIntervalLabel.setText("Sample interval (beats)", juce::dontSendNotification);
     sampleIntervalLabel.setJustificationType(juce::Justification::right);
+    sampleIntervalLabel.setTooltip("How often (in beats) the sample should play");
 
     // delay
     sampleDelaySlider.setRange(0, 10, 0.25);
@@ -60,6 +68,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleDelaySlider.setValue(delay);
     sampleDelayLabel.setText("Sample delay (beats)", juce::dontSendNotification);
     sampleDelayLabel.setJustificationType(juce::Justification::right);
+    sampleDelayLabel.setTooltip("Introduces a delay (in beats) before the sample is played");
 
     // volume
     sampleVolumeSlider.setRange(0, 100, 1);
@@ -67,8 +76,19 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleVolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
     sampleVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 30);
     sampleVolumeSlider.onValueChange = [this] { getParams(); };
-    sampleVolumeLabel.setText("Sample volume", juce::dontSendNotification);
-    sampleVolumeLabel.setJustificationType(juce::Justification::right);
+    sampleVolumeSlider.setTooltip("Change the sample's playback volume");
+    
+    // mute & solo
+    sampleSoloButton.setButtonText("S");
+    sampleSoloButton.setTooltip("Solo sample");
+    sampleSoloButton.onClick = [this] {
+        isSoloed = !isSoloed;
+    };
+    sampleMuteButton.setButtonText("M");
+    sampleMuteButton.setTooltip("Mute sample");
+    sampleMuteButton.onClick = [this] {
+        isMuted = !isMuted;
+    };
     
     addAndMakeVisible(sampleLabel);
     addAndMakeVisible(sampleCollapseButton);
@@ -83,8 +103,9 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     addAndMakeVisible(sampleCropRightLabel);
     addAndMakeVisible(sampleDelayLabel);
     addAndMakeVisible(sampleDelaySlider);
-    addAndMakeVisible(sampleVolumeLabel);
     addAndMakeVisible(sampleVolumeSlider);
+    addAndMakeVisible(sampleMuteButton);
+    addAndMakeVisible(sampleSoloButton);
 }
 
 Sample::~Sample() {
@@ -115,9 +136,11 @@ void Sample::paint (juce::Graphics& g)
         //g.fillRoundedRectangle(getX(), getY(), getWidth(), getHeight(), 20.f);
     } else { // waiting
         //g.fillAll (juce::Colour(100, 100, 100));
-        g.setColour(juce::Colour(100, 100, 100));
+        g.setColour(juce::Colour(80, 80, 80));
     }
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.f);
+    g.setColour(juce::Colour(150, 150, 150));
+    g.drawRoundedRectangle(getLocalBounds().toFloat(), 10.f, 1.f);
     
     // make sliders reflect true values
     sampleBpmSlider.setValue(sampleBpm);
@@ -127,40 +150,60 @@ void Sample::paint (juce::Graphics& g)
     sampleCropLeftSlider.setValue(cropLeft);
     sampleCropRightSlider.setValue(cropRight);
     slidersChanged = false;
+    
+    if(isMuted) sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkred);
+    else sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkslategrey);
+    
+    if(isSoloed) sampleSoloButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::blue);
+    else sampleSoloButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkslategrey);
+    
+    if(collapsed) {
+        sampleBrowseButton.setVisible(false);
+        sampleBpmSlider.setVisible(false);
+        sampleBpmLabel.setVisible(false);
+    } else {
+        sampleBrowseButton.setVisible(true);
+        sampleBpmSlider.setVisible(true);
+        sampleBpmLabel.setVisible(true);
+        sampleVolumeSlider.setVisible(true);
+    }
 }
 
 void Sample::resized() {
     // label
-    sampleLabel.setBounds(120, 0, 200, 20);
+    sampleLabel.setBounds(120, 5, 200, 20);
     
     // collapse
-    sampleCollapseButton.setBounds(20, 0, 20, 20);
+    sampleCollapseButton.setBounds(20, 5, 20, 20);
     
     // browse
-    sampleBrowseButton.setBounds(50, 0, 60, 40);
+    sampleBrowseButton.setBounds(50, 5, 60, 40);
     
     // bpm
-    sampleBpmLabel.setBounds(120, 5, 475, 20);
-    sampleBpmSlider.setBounds(120, 20, 475, 20);
+    sampleBpmLabel.setBounds(320, 10, 275, 20);
+    sampleBpmSlider.setBounds(120, 25, 475, 20);
     
     // crop
-    sampleCropLeftLabel.setBounds(20, 45, 275, 20);
-    sampleCropLeftSlider.setBounds(20, 60, 275, 20);
+    sampleCropLeftLabel.setBounds(20, 50, 275, 20);
+    sampleCropLeftSlider.setBounds(20, 65, 275, 20);
     
-    sampleCropRightLabel.setBounds(320, 45, 275, 20);
-    sampleCropRightSlider.setBounds(320, 60, 275, 20);
+    sampleCropRightLabel.setBounds(320, 50, 275, 20);
+    sampleCropRightSlider.setBounds(320, 65, 275, 20);
     
     // interval
-    sampleIntervalLabel.setBounds(20, 85, 275, 20);
-    sampleIntervalSlider.setBounds(20, 100, 275, 20);
+    sampleIntervalLabel.setBounds(20, 90, 275, 20);
+    sampleIntervalSlider.setBounds(20, 105, 275, 20);
     
     // delay
-    sampleDelayLabel.setBounds(320, 85, 275, 20);
-    sampleDelaySlider.setBounds(320, 100, 275, 20);
+    sampleDelayLabel.setBounds(320, 90, 275, 20);
+    sampleDelaySlider.setBounds(320, 105, 275, 20);
     
     // volume
-    sampleVolumeSlider.setBounds(670, 0, 50, 120);
+    sampleVolumeSlider.setBounds(670, 5, 50, 120);
     
+    // mute & solo
+    sampleMuteButton.setBounds(620, 5, 25, 25);
+    sampleSoloButton.setBounds(650, 5, 25, 25);
 }
 
 bool Sample::loadSample(juce::File file) {
@@ -244,8 +287,10 @@ void Sample::getValue(float &outLeft, float &outRight, long roundedBeat, long pr
         //int adjustedSampleOffset = std::round((float)sampleOffset * samplePlaybackRate);
         int sampleOffset = (int)std::round(curPos);
         
-        outLeft += inLeftBuffer[sampleOffset] * volume;
-        outRight += inRightBuffer[sampleOffset] * volume;
+        if(!isMuted) {
+            outLeft += inLeftBuffer[sampleOffset] * volume;
+            outRight += inRightBuffer[sampleOffset] * volume;
+        }
         
         curPos += playbackRate;
         if(curPos >= endPos) {

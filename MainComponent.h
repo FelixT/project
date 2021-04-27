@@ -69,6 +69,8 @@ private:
     long roundBeat = 0;
     long prevBeat = 0;
     
+    juce::TooltipWindow tooltipWindow;
+    
     juce::Slider freqSlider;
     juce::Label freqLabel;
     

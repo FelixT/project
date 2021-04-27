@@ -50,11 +50,17 @@ private:
     double parseEquation(std::string input);
     std::string toolTip();
     
+    enum modifierFunctions {
+        FUNCTION_IDLE,
+        FUNCTION_INTERVAL,
+        FUNCTION_DELAY,
+        FUNCTION_BPM
+    };
+    
     enum modifierState {
-        MODIFIER_IDLE,
-        MODIFIER_INTERVAL,
-        MODIFIER_DELAY,
-        MODIFIER_BPM
+        STATE_IDLE,
+        STATE_SAMPLE,
+        STATE_MODIFIER
     };
     
     struct euclideanPreset {
@@ -86,6 +92,8 @@ private:
     juce::TextButton modifierForward;
     juce::TextButton modifierBack;
     
+    juce::TextButton modifierRefresh;
+    
     std::string equation = "X";
     
     juce::Label modifierPosition;
@@ -95,7 +103,9 @@ private:
     double max = 4.0;
     double step = 0.25;
     int sampleIndex = -1;
+    int modifierIndex = -1;
     int functionIndex = 0;
+    int state = 0;
     
     bool slidersChanged = false;
     

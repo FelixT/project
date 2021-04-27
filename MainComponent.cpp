@@ -25,28 +25,40 @@ MainComponent::MainComponent()
     noteLengthLabel.setText("Note Length (%)", juce::dontSendNotification);
     
     curBeatLabel.setText("0", juce::dontSendNotification);
+    curBeatLabel.setColour(juce::Label::backgroundColourId, juce::Colours::red);
+    //curBeatLabel.setPaintingIsUnclipped(true);
+    curBeatLabel.setOpaque(true);
     
     sampleAddButton.setButtonText("Add sample");
     sampleAddButton.onClick = [this] { addSample(); };
     
     resetBeatButton.setButtonText("Reset beat");
     resetBeatButton.onClick = [this] { curBeat = -0.1f; prevBeat = -0.2f; };
+    resetBeatButton.setTooltip("Reset the current beat count to 0. This may fix some issues.");
     
     saveStateButton.setButtonText("Save state");
     saveStateButton.onClick = [this] { saveState(); };
+    saveStateButton.setTooltip("Save the currently open project");
     
     loadStateButton.setButtonText("Load state");
     loadStateButton.onClick = [this] { loadState(); };
+    loadStateButton.setTooltip("Load a previous project");
     
     modifierAddButton.setButtonText("Add modifier");
     modifierAddButton.onClick = [this] { addModifier(); };
     
     newProjectButton.setButtonText("New project");
-    newProjectButton.onClick = [this] { resetSamples(); resetModifiers(); curBeat = -0.1f; prevBeat = -0.2f; resized(); };
+    newProjectButton.onClick = [this] {
+        loading = true;
+        resetSamples(); resetModifiers(); curBeat = -0.1f; prevBeat = -0.2f; resized();
+        loading = false;
+    };
+    newProjectButton.setTooltip("Discards the current project and starts a new one");
 
     samplesViewport.setViewedComponent(&samplesComponent, false);
     modifiersViewport.setViewedComponent(&modifiersComponent, false);
     
+    addAndMakeVisible(tooltipWindow);
     addAndMakeVisible(freqSlider);
     addAndMakeVisible(freqLabel);
     addAndMakeVisible(bpmSlider);
@@ -319,7 +331,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     
     if(loading) return;
     
-    juce::MessageManager::callAsync ([this] { repaint(10, 130, 100, 20); }); // redraw the beat count
+    // redraw the beat count
+    juce::MessageManager::callAsync ([this] { curBeatLabel.setText(juce::String((double)roundBeat/(std::pow(10, precision))), juce::dontSendNotification); curBeatLabel.repaint(); });
     
     
     // get buffers
@@ -413,6 +426,8 @@ void MainComponent::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+ 
+    std::cout << "REPAINT!!" << std::endl;
     
     int width = getWidth();
     int avaliableHeight = getHeight() - 150;
@@ -420,15 +435,35 @@ void MainComponent::paint (juce::Graphics& g)
     int modifiersHeight = avaliableHeight/2 - 25;
     
     
-    g.setColour(juce::Colour(50, 50, 50));
+    g.setColour(juce::Colour(30, 30, 30));
     g.fillRect(0, 150, width, samplesHeight); // fill samples area
+    g.setColour(juce::Colour(0, 0, 0));
+    g.drawRect(0, 150, width, samplesHeight);
+    if(samples.size() == 0) {
+        g.setFont(20);
+        g.drawText("< Samples >", 0, 151, width, samplesHeight-1, juce::Justification::centred);
+
+        g.setColour(juce::Colour(255, 255, 255));
+        g.drawText("< Samples >", 0, 150, width, samplesHeight, juce::Justification::centred);
+    }
+        
+    //g.drawSingleLineText("SAMPLES", 0, 150);
     
-    g.setColour(juce::Colour(50, 50, 50));
+    g.setColour(juce::Colour(30, 30, 30));
     g.fillRect(0, 150+samplesHeight+25, width, modifiersHeight); // fill modifiers area
+    g.setColour(juce::Colour(0, 0, 0));
+    g.drawRect(0, 150+samplesHeight+25, width, modifiersHeight);
+    if(modifiers.size() == 0) {
+        g.setFont(20);
+        g.drawText("< Modifiers >", 0, 150+samplesHeight+26, width, modifiersHeight - 1, juce::Justification::centred);
+
+        g.setColour(juce::Colour(255, 255, 255));
+        g.drawText("< Modifiers >", 0, 150+samplesHeight+25, width, modifiersHeight, juce::Justification::centred);
+    }
     
     // draw current beat
     //g.fillRect(10, 100, 100, 20)
-    curBeatLabel.setText(juce::String((double)roundBeat/(std::pow(10, precision))), juce::dontSendNotification);
+
 }
 
 void MainComponent::resized()
@@ -473,7 +508,7 @@ void MainComponent::resized()
     samplesViewport.setBounds(0, 150, width, samplesHeight); 
     
     int relativeY = 0;
-    int margin = 2; // (bottom)
+    int margin = 3; // (bottom)
 
     for(int i = 0; i < samples.size(); i++) {
         if(samples[i]->isCollapsed()) {

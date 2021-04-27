@@ -18,3 +18,9 @@
 16) Delete samples & modifiers
 17) Don't crash when devices change
 18) Make scrollbars keep position when adding/minimising 
+19) Disabling of modifiers, disabled by default
+20) Renaming of samples & modifiers
+21) Remove all the std couts
+22) Throw errors/don't allow the user to enter invalid params
+23) Modifiers shouldnt modify themselves maybe?
+24) Project settings

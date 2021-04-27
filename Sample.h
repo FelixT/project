@@ -63,7 +63,9 @@ private:
     juce::Slider sampleDelaySlider;
     juce::Label sampleDelayLabel;
     juce::Slider sampleVolumeSlider;
-    juce::Label sampleVolumeLabel;
+    
+    juce::TextButton sampleSoloButton;
+    juce::TextButton sampleMuteButton;
     
     juce::AudioFormatReader *sampleReader = nullptr;
     juce::AudioBuffer<float> *sampleBuffer = nullptr;
@@ -93,6 +95,8 @@ private:
     bool isWaiting = true;
     bool slidersChanged = false;
     bool isDisabled = false;
+    bool isMuted = false;
+    bool isSoloed = false;
     
     juce::AudioFormatManager *formatManager;
     
