@@ -24,3 +24,4 @@
 22) Throw errors/don't allow the user to enter invalid params
 23) Modifiers shouldnt modify themselves maybe?
 24) Project settings
+25) Have individual parameters for each modifier mode, hence save each of these on saving project and when changing mode

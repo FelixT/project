@@ -31,9 +31,11 @@ public:
     double getDelay();
     void setVolume(double val);
     void setPath(std::string path);
+    void setParameter(int index);
+    void setCollapsed(bool c);
+    void setMuted(bool m);
     void setBpm(double val);
     bool isCollapsed();
-    void setCollapsed(bool c);
     void disable();
     juce::String getLabel();
 
@@ -45,6 +47,7 @@ private:
     long pow10(float input, int power);
     void getParams();
     bool loadSample(juce::File file);
+    void mouseDown(const juce::MouseEvent &event) override;
     
     bool collapsed = false;
     std::string samplePath;

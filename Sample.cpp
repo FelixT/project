@@ -114,12 +114,23 @@ Sample::~Sample() {
     formatManager = nullptr;
 }
 
+void Sample::mouseDown(const juce::MouseEvent &event) {
+    if(event.getNumberOfClicks() == 2) {
+        collapsed = !collapsed;
+        getParentComponent()->getParentComponent()->getParentComponent()->getParentComponent()->resized(); // i hate this but it works...
+    }
+}
+
 bool Sample::isCollapsed() {
     return collapsed;
 }
 
 void Sample::setCollapsed(bool c) {
     collapsed = c;
+}
+
+void Sample::setMuted(bool m) {
+    isMuted = m;
 }
 
 // disables the sample for its interval
@@ -161,6 +172,7 @@ void Sample::paint (juce::Graphics& g)
         sampleBrowseButton.setVisible(false);
         sampleBpmSlider.setVisible(false);
         sampleBpmLabel.setVisible(false);
+        sampleVolumeSlider.setVisible(false);
     } else {
         sampleBrowseButton.setVisible(true);
         sampleBpmSlider.setVisible(true);
@@ -202,8 +214,8 @@ void Sample::resized() {
     sampleVolumeSlider.setBounds(670, 5, 50, 120);
     
     // mute & solo
-    sampleMuteButton.setBounds(620, 5, 25, 25);
-    sampleSoloButton.setBounds(650, 5, 25, 25);
+    sampleMuteButton.setBounds(610, 5, 25, 25);
+    sampleSoloButton.setBounds(640, 5, 25, 25);
 }
 
 bool Sample::loadSample(juce::File file) {
@@ -383,12 +395,14 @@ std::string Sample::toString() {
     std::string output = "";
     output += "Sample " + sampleLabel.getText().toStdString() + " {\n";
     output += "path " + samplePath + "\n";
-    output += "bpm " + std::to_string(sampleBpmSlider.getValue()) + "\n";
-    output += "start " + std::to_string(sampleCropLeftSlider.getValue()) + "\n";
-    output += "end " + std::to_string(sampleCropRightSlider.getValue()) + "\n";
-    output += "interval " + std::to_string(sampleIntervalSlider.getValue()) + "\n";
-    output += "delay " + std::to_string(sampleDelaySlider.getValue()) + "\n";
-    output += "volume " + std::to_string(sampleVolumeSlider.getValue()) + "\n";
+    output += "bpm " + std::to_string(sampleBpm) + "\n";
+    output += "start " + std::to_string(cropLeft) + "\n";
+    output += "end " + std::to_string(cropRight) + "\n";
+    output += "interval " + std::to_string(interval) + "\n";
+    output += "delay " + std::to_string(delay) + "\n";
+    output += "volume " + std::to_string(volume) + "\n";
+    output += "muted " + std::to_string(isMuted) + "\n";
+    output += "collapsed " + std::to_string(collapsed) + "\n";
     output += "}\n";
     return output;
 }

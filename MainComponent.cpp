@@ -25,7 +25,7 @@ MainComponent::MainComponent()
     noteLengthLabel.setText("Note Length (%)", juce::dontSendNotification);
     
     curBeatLabel.setText("0", juce::dontSendNotification);
-    curBeatLabel.setColour(juce::Label::backgroundColourId, juce::Colours::red);
+    curBeatLabel.setColour(juce::Label::backgroundColourId, findColour(juce::ResizableWindow::backgroundColourId));
     //curBeatLabel.setPaintingIsUnclipped(true);
     curBeatLabel.setOpaque(true);
     
@@ -104,7 +104,9 @@ void MainComponent::saveState() {
         Modifier *modifier = modifiers.at(i);
         output += modifier->toString();
     }
+    std::cout << "\n\n---- SAVING STATE ----\n" << std::endl;
     std::cout << output << std::endl;
+    std::cout << "---- END SAVING STATE ----" << std::endl;
 }
 
 void MainComponent::loadState() {
@@ -133,7 +135,7 @@ void MainComponent::loadState() {
                 // split by space
                 auto splitPos = line.find(' ');
                 
-                std::cout << splitPos << std::endl;
+                //std::cout << splitPos << std::endl;
                 
                 std::string first = line.substr(0, splitPos);
                 std::string second = line.substr(splitPos+1, line.length()-splitPos-3);
@@ -178,80 +180,34 @@ void MainComponent::loadState() {
                     std::string second = line.substr(splitPos+1, line.length()-1);
                     
                     if(state == STATE_IN_PROJECT_BLOCK) {
-                        if(first == "bpm") {
-                            bpmSlider.setValue(std::stod(second));
-                            std::cout << "with bpm " << second << std::endl;
-                        }
+                        std::cout << "with " << first << " '" << second << "'" << std::endl;
+
+                        if(first == "bpm") bpmSlider.setValue(std::stod(second));
                     } else if(state == STATE_IN_SAMPLE_BLOCK) {
-                        if(first == "path") {
-                            samples.back()->setPath(second);
-                            std::cout << "with path " << second << std::endl;
-                        }
                         
-                        if(first == "bpm") {
-                            samples.back()->setBpm(std::stod(second));
-                            std::cout << "with bpm " << second << std::endl;
-                        }
+                        if(first == "path") samples.back()->setPath(second);
+                        if(first == "bpm") samples.back()->setBpm(std::stod(second));
+                        if(first == "start") samples.back()->setStart(std::stod(second));
+                        if(first == "end") samples.back()->setEnd(std::stod(second));
+                        if(first == "interval") samples.back()->setInterval(std::stod(second));
+                        if(first == "delay") samples.back()->setDelay(std::stod(second));
+                        if(first == "volume") samples.back()->setVolume(std::stod(second));
+                        if(first == "muted") samples.back()->setMuted(std::stod(second));
+                        if(first == "collapsed") samples.back()->setCollapsed(std::stod(second));
                         
-                        if(first == "start") {
-                            samples.back()->setStart(std::stod(second));
-                            std::cout << "with start " << second << std::endl;
-                        }
-                        
-                        if(first == "end") {
-                            samples.back()->setEnd(std::stod(second));
-                            std::cout << "with end " << second << std::endl;
-                        }
-                        
-                        if(first == "interval") {
-                            samples.back()->setInterval(std::stod(second));
-                            std::cout << "with interval " << second << std::endl;
-                        }
-                        
-                        if(first == "delay") {
-                            samples.back()->setDelay(std::stod(second));
-                            std::cout << "with delay " << second << std::endl;
-                        }
-                        
-                        if(first == "volume") {
-                            samples.back()->setVolume(std::stod(second));
-                            std::cout << "with volume " << second << std::endl;
-                        }
                     } else if(state == STATE_IN_MODIFIER_BLOCK) {
-                        if(first == "mode") {
-                            modifiers.back()->setMode(std::stoi(second));
-                            std::cout << "with mode " << second << std::endl;
-                        }
+                        std::cout << "with " << first << " '" << second << "'" << std::endl;
                         
-                        if(first == "function") {
-                            modifiers.back()->setFunction(std::stoi(second));
-                            std::cout << "with function " << second << std::endl;
-                        }
+                        if(first == "mode") modifiers.back()->setMode(std::stoi(second));
+                        if(first == "state") modifiers.back()->setState(std::stoi(second));
+                        if(first == "parameter") modifiers.back()->setState(std::stoi(second));
+                        if(first == "selected") modifiers.back()->setSelected(std::stoi(second));
+                        if(first == "interval") modifiers.back()->setInterval(std::stod(second));
+                        if(first == "min") modifiers.back()->setMin(std::stod(second));
+                        if(first == "max") modifiers.back()->setMax(std::stod(second));
+                        if(first == "step") modifiers.back()->setStep(std::stod(second));
+                        if(first == "equation") modifiers.back()->setEquation(second);
                         
-                        if(first == "sample") {
-                            modifiers.back()->setSample(std::stoi(second));
-                            std::cout << "with sample " << second << std::endl;
-                        }
-                        
-                        if(first == "interval") {
-                            modifiers.back()->setInterval(std::stod(second));
-                            std::cout << "with interval " << second << std::endl;
-                        }
-                        
-                        if(first == "min") {
-                            modifiers.back()->setMin(std::stod(second));
-                            std::cout << "with min " << second << std::endl;
-                        }
-                        
-                        if(first == "max") {
-                            modifiers.back()->setMax(std::stod(second));
-                            std::cout << "with max " << second << std::endl;
-                        }
-                        
-                        if(first == "step") {
-                            modifiers.back()->setStep(std::stod(second));
-                            std::cout << "with step " << second << std::endl;
-                        }
                     }
                     
                 }
@@ -426,43 +382,39 @@ void MainComponent::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
- 
-    std::cout << "REPAINT!!" << std::endl;
-    
+     
     int width = getWidth();
     int avaliableHeight = getHeight() - 150;
     int samplesHeight = avaliableHeight/2 - 25;
     int modifiersHeight = avaliableHeight/2 - 25;
     
-    
-    g.setColour(juce::Colour(30, 30, 30));
-    g.fillRect(0, 150, width, samplesHeight); // fill samples area
-    g.setColour(juce::Colour(0, 0, 0));
-    g.drawRect(0, 150, width, samplesHeight);
-    if(samples.size() == 0) {
-        g.setFont(20);
-        g.drawText("< Samples >", 0, 151, width, samplesHeight-1, juce::Justification::centred);
+    if(samplesHeight >= 20) {
+        g.setColour(juce::Colour(30, 30, 30));
+        g.fillRect(0, 150, width, samplesHeight); // fill samples area
+        g.setColour(juce::Colour(0, 0, 0));
+        g.drawRect(0, 150, width, samplesHeight);
+        if(samples.size() == 0) {
+            g.setFont(20);
+            g.drawText("< Samples >", 0, 151, width, samplesHeight-1, juce::Justification::centred);
 
-        g.setColour(juce::Colour(255, 255, 255));
-        g.drawText("< Samples >", 0, 150, width, samplesHeight, juce::Justification::centred);
-    }
-        
-    //g.drawSingleLineText("SAMPLES", 0, 150);
-    
-    g.setColour(juce::Colour(30, 30, 30));
-    g.fillRect(0, 150+samplesHeight+25, width, modifiersHeight); // fill modifiers area
-    g.setColour(juce::Colour(0, 0, 0));
-    g.drawRect(0, 150+samplesHeight+25, width, modifiersHeight);
-    if(modifiers.size() == 0) {
-        g.setFont(20);
-        g.drawText("< Modifiers >", 0, 150+samplesHeight+26, width, modifiersHeight - 1, juce::Justification::centred);
-
-        g.setColour(juce::Colour(255, 255, 255));
-        g.drawText("< Modifiers >", 0, 150+samplesHeight+25, width, modifiersHeight, juce::Justification::centred);
+            g.setColour(juce::Colour(255, 255, 255));
+            g.drawText("< Samples >", 0, 150, width, samplesHeight, juce::Justification::centred);
+        }
     }
     
-    // draw current beat
-    //g.fillRect(10, 100, 100, 20)
+    if(modifiersHeight >= 20) {
+        g.setColour(juce::Colour(30, 30, 30));
+        g.fillRect(0, 150+samplesHeight+25, width, modifiersHeight); // fill modifiers area
+        g.setColour(juce::Colour(0, 0, 0));
+        g.drawRect(0, 150+samplesHeight+25, width, modifiersHeight);
+        if(modifiers.size() == 0) {
+            g.setFont(20);
+            g.drawText("< Modifiers >", 0, 150+samplesHeight+26, width, modifiersHeight - 1, juce::Justification::centred);
+
+            g.setColour(juce::Colour(255, 255, 255));
+            g.drawText("< Modifiers >", 0, 150+samplesHeight+25, width, modifiersHeight, juce::Justification::centred);
+        }
+    }
 
 }
 
@@ -489,14 +441,15 @@ void MainComponent::resized()
     noteLengthLabel.setBounds(275, 50, 100, 20);
     noteLengthSlider.setBounds(275, 70, 250, 20);
     
-    curBeatLabel.setBounds(10, 100, 100, 20);
+    curBeatLabel.setBounds(10, 95, 100, 20);
+    curBeatLabel.setTooltip("Current beat count");
         
-    sampleAddButton.setBounds(10, 125, 60, 20);
-    resetBeatButton.setBounds(80, 125, 60, 20);
-    saveStateButton.setBounds(150, 125, 60, 20);
-    loadStateButton.setBounds(220, 125, 60, 20);
-    modifierAddButton.setBounds(290, 125, 60, 20);
-    newProjectButton.setBounds(360, 125, 60, 20);
+    sampleAddButton.setBounds(10, 120, 60, 20);
+    resetBeatButton.setBounds(80, 120, 60, 20);
+    saveStateButton.setBounds(150, 120, 60, 20);
+    loadStateButton.setBounds(220, 120, 60, 20);
+    modifierAddButton.setBounds(290, 120, 60, 20);
+    newProjectButton.setBounds(360, 120, 60, 20);
     
     int avaliableHeight = getHeight() - 150;
     

@@ -34,9 +34,11 @@ public:
     void setMin(double val);
     void setMax(double val);
     void setStep(double val);
-    void setSample(int index);
+    void setSelected(int index);
     void setMode(int index);
-    void setFunction(int index);
+    void setState(int index);
+    void setParameter(int index);
+    void setEquation(std::string eqn);
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
@@ -50,11 +52,11 @@ private:
     double parseEquation(std::string input);
     std::string toolTip();
     
-    enum modifierFunctions {
-        FUNCTION_IDLE,
-        FUNCTION_INTERVAL,
-        FUNCTION_DELAY,
-        FUNCTION_BPM
+    enum modifierParameter {
+        PARAMETER_IDLE,
+        PARAMETER_INTERVAL,
+        PARAMETER_DELAY,
+        PARAMETER_BPM
     };
     
     enum modifierState {
@@ -73,8 +75,8 @@ private:
     
     juce::Label modifierSelectLabel;
     juce::ComboBox modifierSelect;
-    juce::Label modifierFunctionLabel;
-    juce::ComboBox modifierFunction;
+    juce::Label modifierParameterLabel;
+    juce::ComboBox modifierParameter;
     juce::Label modifierIntervalLabel;
     juce::Slider modifierInterval;
     juce::Label modifierMinLabel;
@@ -102,10 +104,10 @@ private:
     double min = 2.0; // integer doubles up as number of pulses in a Euclidean rhythm
     double max = 4.0;
     double step = 0.25;
-    int sampleIndex = -1;
-    int modifierIndex = -1;
-    int functionIndex = 0;
-    int state = 0;
+    int selected = -1; // index of selected sample/modifier (depending on state)
+    
+    enum modifierParameter parameter = PARAMETER_IDLE;
+    modifierState state = STATE_IDLE;
     
     bool slidersChanged = false;
     
@@ -119,7 +121,7 @@ private:
     
     modifierMode mode = MODE_RANDOM;
     
-    int euclideanPosition = -1;
+    int euclideanPosition = -1; // also used for equations
     
     std::vector<Sample*> *samples;
     std::vector<Modifier*> *modifiers;
@@ -128,7 +130,6 @@ private:
     
     juce::Colour background = juce::Colour(100, 100, 100);
     
-    int tmp = 0; // delete this
 };
 
 #endif /* Modifier_hpp */
