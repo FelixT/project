@@ -337,6 +337,8 @@ void Modifier::paint(juce::Graphics& g) {
     modifierMax.setValue(max, juce::dontSendNotification);
     modifierStep.setValue(step, juce::dontSendNotification);
     
+    updateDropdown();
+    
     // update which dropdown is selected
     if(state == STATE_IDLE)
         modifierSelect.setSelectedId(1, juce::dontSendNotification);
@@ -528,8 +530,6 @@ void Modifier::setStep(double val) {
 }
 
 void Modifier::setSelected(int index) {
-    updateDropdown();// todo: don't
-    
     selected = index;
     slidersChanged = true;
 }
@@ -537,8 +537,6 @@ void Modifier::setSelected(int index) {
 void Modifier::setMode(int index) {
     mode = (modifierMode)index;
     slidersChanged = true;
-    
-    getParams();
 }
 
 void Modifier::setState(int index) {
@@ -676,6 +674,20 @@ void Modifier::tick(long roundedBeat, long prevBeat) {
    }
 }
 
+void Modifier::updateEuclidean() {
+    int length = (int)interval;
+    int beats = (int)min;
+    
+    modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
+    
+    // get current sample
+    if(selected >= 0 & selected < samples->size()) {
+       // valid sample selected
+        Sample *sample = samples->at(selected);
+        sample->setInterval(interval);
+    }
+}
+
 void Modifier::getParams() {
         
     modifierPresetMenu.setSelectedId(0);
@@ -689,7 +701,6 @@ void Modifier::getParams() {
     
     parameter = (enum modifierParameter)modifierParameter.getSelectedId();
     
-    
     if(selectedId <= 1) {
         state = STATE_IDLE;
     } else if(selectedId > 1 && selectedId < samples->size() + 2) { // sample
@@ -702,17 +713,8 @@ void Modifier::getParams() {
     
     
     if(mode == MODE_EUCLIDEAN && state == STATE_SAMPLE) {
-        int length = (int)interval;
-        int beats = (int)min;
+        updateEuclidean();
         
-        modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
-        
-        // get current sample
-        if(selected >= 0 & selected < samples->size()) {
-           // valid sample selected
-            Sample *sample = samples->at(selected);
-            sample->setInterval(interval);
-        }
     } else if(mode == MODE_EQUATION) {
         equation = modifierEquation.getText().toStdString();
         

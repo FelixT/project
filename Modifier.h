@@ -39,6 +39,7 @@ public:
     void setState(int index);
     void setParameter(int index);
     void setEquation(std::string eqn);
+    void updateEuclidean();
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
