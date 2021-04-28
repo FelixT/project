@@ -91,7 +91,7 @@ MainComponent::~MainComponent()
     
 }
 
-void MainComponent::saveState() {
+std::string MainComponent::getState() {
     std::string output = "";
     output += "Project <name> {\n";
     output += "bpm " + std::to_string(bpmSlider.getValue()) + "\n";
@@ -104,9 +104,29 @@ void MainComponent::saveState() {
         Modifier *modifier = modifiers.at(i);
         output += modifier->toString();
     }
-    std::cout << "\n\n---- SAVING STATE ----\n" << std::endl;
+    return output;
+}
+
+// save state to file
+void MainComponent::saveState() {
+    std::string output = getState();
+    
+    std::cout << "\n\n---- STATE ----\n" << std::endl;
     std::cout << output << std::endl;
-    std::cout << "---- END SAVING STATE ----" << std::endl;
+    std::cout << "---- END STATE ----" << std::endl;
+    
+    juce::FileChooser chooser("Save as project file (.PR)", {}, "*.pr");
+    if(chooser.browseForFileToSave(true)) {
+        loading = true;
+        
+        juce::File jfile = chooser.getResult();
+        std::string path = jfile.getFullPathName().toStdString();
+        
+        std::ofstream file(path, std::ofstream::out);
+        file << output;
+        file.close();
+    }
+    
 }
 
 void MainComponent::loadState() {

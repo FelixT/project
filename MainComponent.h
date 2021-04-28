@@ -26,6 +26,7 @@ public:
     void prepareToPlay (int samplesPerBlockExpected, double sampleRate) override;
     void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
+    std::string getState();
     void saveState();
     void loadState();
     void resetSamples();
