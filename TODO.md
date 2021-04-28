@@ -25,3 +25,4 @@
 23) Modifiers shouldnt modify themselves maybe?
 24) Project settings
 25) Have individual parameters for each modifier mode, hence save each of these on saving project and when changing mode
+26) Parameters not saved: Master volume, Sine wave params

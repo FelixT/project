@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string>
 #include <JuceHeader.h>
+#include "WaveformView.h"
 
 class Sample : public juce::Component {
     
@@ -74,6 +75,7 @@ private:
     juce::AudioBuffer<float> *sampleBuffer = nullptr;
     
     double curPos = 0.0;
+    double sampleLength = 0.0;
     
     double sampleBpm = 120.0;
     double interval = 1.0;
@@ -102,6 +104,8 @@ private:
     bool isSoloed = false;
     
     juce::AudioFormatManager *formatManager;
+    
+    WaveformView *sampleWaveform;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Sample)
 };

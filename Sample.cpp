@@ -11,6 +11,8 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     
     formatManager = manager;
     
+    sampleWaveform = new WaveformView(&sampleLength, &curPos, &volume, &startPos, &endPos, formatManager);
+    
     // label (name)
     sampleLabel.setText("Unloaded", juce::dontSendNotification);
     sampleLabel.setEditable(true);
@@ -41,16 +43,16 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     sampleCropLeftSlider.setRange(cropLeft, 100, 0.01);
     sampleCropLeftSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
     sampleCropLeftSlider.onValueChange = [this] { getParams(); };
-    sampleCropLeftLabel.setText("Crop sample (left %)", juce::dontSendNotification);
+    sampleCropLeftLabel.setText("Crop sample (start %)", juce::dontSendNotification);
     sampleCropLeftLabel.setJustificationType(juce::Justification::right);
-    sampleCropLeftLabel.setTooltip("At what position to start the sample");
+    sampleCropLeftLabel.setTooltip("At what point to start playing the sample");
     
     sampleCropRightSlider.setRange(cropRight, 100, 0.01);
     sampleCropRightSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
     sampleCropRightSlider.onValueChange = [this] { getParams(); };
-    sampleCropRightLabel.setText("Crop sample (right %)", juce::dontSendNotification);
+    sampleCropRightLabel.setText("Crop sample (end %)", juce::dontSendNotification);
     sampleCropRightLabel.setJustificationType(juce::Justification::right);
-    sampleCropRightLabel.setTooltip("At what position to end the sample");
+    sampleCropRightLabel.setTooltip("At what point to stop playing the sample");
     
     //interval
     sampleIntervalSlider.setRange(0.25, 16, 0.25);
@@ -106,6 +108,7 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     addAndMakeVisible(sampleVolumeSlider);
     addAndMakeVisible(sampleMuteButton);
     addAndMakeVisible(sampleSoloButton);
+    addAndMakeVisible(sampleWaveform);
 }
 
 Sample::~Sample() {
@@ -140,6 +143,8 @@ void Sample::disable() {
 
 void Sample::paint (juce::Graphics& g)
 {
+    std::cout << "Painting sample" << std::endl;
+    
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     if(!isWaiting) { // playing
         //g.fillAll (juce::Colour(50, 100, 50));
@@ -211,11 +216,16 @@ void Sample::resized() {
     sampleDelaySlider.setBounds(320, 105, 275, 20);
     
     // volume
-    sampleVolumeSlider.setBounds(670, 5, 50, 120);
+    sampleVolumeSlider.setBounds(610, 30, 50, 90);
     
     // mute & solo
     sampleMuteButton.setBounds(610, 5, 25, 25);
     sampleSoloButton.setBounds(640, 5, 25, 25);
+    
+    // waveform
+    int waveWidth = getLocalBounds().getWidth() - 675 - 15;
+    if(waveWidth > 0)
+        sampleWaveform->setBounds(675, 35, waveWidth, 75);
 }
 
 bool Sample::loadSample(juce::File file) {
@@ -226,6 +236,8 @@ bool Sample::loadSample(juce::File file) {
         sampleRate = sampleReader->sampleRate;
 
         sampleReader->read(sampleBuffer, 0, sampleReader->lengthInSamples, 0, true, true);
+        
+        sampleWaveform->setSource(new juce::FileInputSource(file));
         
         isLoaded = true;
         
@@ -340,9 +352,11 @@ void Sample::updateBuffers(int numSamples) {
     const juce::AudioSourceChannelInfo sampleFill(sampleBuffer, 0, numSamples);
     inLeftBuffer = sampleFill.buffer->getReadPointer(0, 0);
     inRightBuffer = sampleFill.buffer->getReadPointer(1, 0);
+    sampleLength = sampleBuffer->getNumSamples();
+    juce::MessageManager::callAsync ([this] { sampleWaveform->repaint(); }); // redraw waveform while we're at it
     
-    startPos = cropLeft * 0.01 * sampleBuffer->getNumSamples();
-    endPos = (1.0 - (cropRight * 0.01)) * sampleBuffer->getNumSamples();
+    startPos = cropLeft * 0.01 * sampleLength;
+    endPos = (1.0 - (cropRight * 0.01)) * sampleLength;
 }
 
 void Sample::setLabel(std::string label) {
