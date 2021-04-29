@@ -228,7 +228,11 @@ void MainComponent::loadState() {
                         if(first == "interval") modifiers.back()->setInterval(std::stod(second));
                         if(first == "min") modifiers.back()->setMin(std::stod(second));
                         if(first == "max") modifiers.back()->setMax(std::stod(second));
-                        if(first == "step") modifiers.back()->setStep(std::stod(second));
+                        if(first == "step")
+                            modifiers.back()->setStep(std::stod(second));
+                        if(first == "cyclelength") modifiers.back()->setCycleLength(std::stod(second));
+                        if(first == "pulseduration") modifiers.back()->setPulseDuration(std::stod(second));
+                        if(first == "euclideanhits") modifiers.back()->setPulseDuration(std::stod(second));
                         if(first == "equation") modifiers.back()->setEquation(second);
                         
                     }

@@ -23,8 +23,6 @@ void WaveformView::mouseDown(const juce::MouseEvent &event) {
 }
 
 void WaveformView::paint(juce::Graphics& g) {
-    std::cout << "painting waves" << std::endl;
-    
     float width = (float)getLocalBounds().getWidth();
     float height = (float)getLocalBounds().getHeight();
     

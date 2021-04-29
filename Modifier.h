@@ -32,26 +32,37 @@ public:
     void setState(int index);
     void setParameter(int index);
     void setEquation(std::string eqn);
+    void setCycleLength(double len);
+    void setPulseDuration(double len);
+    void setEuclideanHits(double num);
+    
     void updateEuclidean();
     
-    Parameter interval;
-    Parameter min;
-    Parameter max;
-    Parameter step;
+    Parameter randomInterval;
+    Parameter randomMin;
+    Parameter randomMax;
+    Parameter randomStep;
+    
+    Parameter cycleLength; // euclidean & equation
+    Parameter pulseDuration; // euclidean & equation
+    Parameter euclideanNumHits;
+    
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
     void tickEuclidean(long roundedBeat, long prevBeat);
     void tickRandom(long roundedBeat, long prevBeat);
     void tickEquation(long roundedBeat, long prevBeat);
+    void hideAllControls();
     void showRandomControls();
     void showEuclideanControls();
     void drawEuclideanPattern(juce::Graphics& g);
     void showEquationControls();
-    void getParams();
     void changeMode();
     void populatePresets();
     void selectPreset();
+    void updateSelected();
+    
     double parseEquation(std::string input);
     std::string toolTip();
     
@@ -103,7 +114,7 @@ private:
     
     bool slidersChanged = false;
     bool dropdownChanged = false;
-    bool modeChanged = false;
+    //bool modeChanged = false;
     
     std::vector<bool> modifierEuclideanRhythm;
     
@@ -121,6 +132,7 @@ private:
     std::vector<Modifier*> *modifiers;
     long roundedInterval;
     long roundedStep;
+    long roundedPulseDuration;
     
     juce::Colour background = juce::Colour(100, 100, 100);
     

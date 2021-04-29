@@ -13,10 +13,13 @@ public:
     void setStep(double step);
     void setValue(double value);
     void setTooltip(std::string tooltip);
+    bool isChanged(); // whether the user has changed this parameter since we last checked/set it
     double getValue();
     void update();
     void updateAll();
     void resized() override;
+    bool isActive();
+    void setActive(bool v);
 private:
     std::string label;
     std::string tooltip;
@@ -24,6 +27,8 @@ private:
     double max;
     double step;
     double value;
+    bool active = true;
+    bool changed = false;
     
     juce::Label componentLabel;
     juce::Slider componentSlider;
