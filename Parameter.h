@@ -6,16 +6,19 @@
 
 class Parameter : public juce::Component {
 public:
-    Parameter(std::string label, double min, double max, double step, double value);
+    Parameter(std::string label, std::string tooltip, double min, double max, double step, double value);
     void setLabel(std::string label);
     void setMin(double min);
     void setMax(double max);
     void setStep(double step);
     void setValue(double value);
-    void updateGraphics();
+    double getValue();
+    void update();
+    void updateAll();
     void resized() override;
 private:
     std::string label;
+    std::string tooltip;
     double min;
     double max;
     double step;

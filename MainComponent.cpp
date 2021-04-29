@@ -125,6 +125,8 @@ void MainComponent::saveState() {
         std::ofstream file(path, std::ofstream::out);
         file << output;
         file.close();
+        
+        loading = false;
     }
     
 }

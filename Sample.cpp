@@ -1,7 +1,11 @@
 #include "Sample.h"
 
 Sample::Sample(juce::AudioFormatManager *manager)
-: test("TEst", 0.25, 2.25, 0.25, 0.5) {
+: bpm("Sample BPM", "", 5.0, 500.0, 0.01, 120.0),
+cropStart("Crop sample (start %)", "At what point to start playing the sample", 0.0, 100.0, 0.01, 0.0),
+cropEnd("Crop sample (end %)", "At what point to stop playing the sample", 0.0, 100.0, 0.01, 0.0),
+interval("Sample interval (beats)", "How often (in beats) the sample should play", 0.25, 16.0, 0.25, 1.0),
+delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0, 10.0, 0.25, 0.0) {
     
     formatManager = manager;
     
@@ -24,47 +28,6 @@ Sample::Sample(juce::AudioFormatManager *manager)
     sampleBrowseButton.setButtonText ("Sample browser");
     sampleBrowseButton.onClick = [this] { browse(); };
     sampleBrowseButton.setTooltip("Browse your computer to load a new sample");
-    
-    // bpm
-    sampleBpmSlider.setRange(5, 500, 0.01);
-    sampleBpmSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 75, 20);
-    sampleBpmSlider.setValue(sampleBpm);
-    sampleBpmSlider.onValueChange = [this] { getParams(); };
-    sampleBpmLabel.setText("Sample BPM", juce::dontSendNotification);
-    sampleBpmLabel.setJustificationType(juce::Justification::right);
-        
-    // crop
-    sampleCropLeftSlider.setRange(cropLeft, 100, 0.01);
-    sampleCropLeftSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
-    sampleCropLeftSlider.onValueChange = [this] { getParams(); };
-    sampleCropLeftLabel.setText("Crop sample (start %)", juce::dontSendNotification);
-    sampleCropLeftLabel.setJustificationType(juce::Justification::right);
-    sampleCropLeftLabel.setTooltip("At what point to start playing the sample");
-    
-    sampleCropRightSlider.setRange(cropRight, 100, 0.01);
-    sampleCropRightSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
-    sampleCropRightSlider.onValueChange = [this] { getParams(); };
-    sampleCropRightLabel.setText("Crop sample (end %)", juce::dontSendNotification);
-    sampleCropRightLabel.setJustificationType(juce::Justification::right);
-    sampleCropRightLabel.setTooltip("At what point to stop playing the sample");
-    
-    //interval
-    sampleIntervalSlider.setRange(0.25, 16, 0.25);
-    sampleIntervalSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
-    sampleIntervalSlider.setValue(interval);
-    sampleIntervalSlider.onValueChange = [this] { getParams(); };
-    sampleIntervalLabel.setText("Sample interval (beats)", juce::dontSendNotification);
-    sampleIntervalLabel.setJustificationType(juce::Justification::right);
-    sampleIntervalLabel.setTooltip("How often (in beats) the sample should play");
-
-    // delay
-    sampleDelaySlider.setRange(0, 10, 0.25);
-    sampleDelaySlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 30);
-    sampleDelaySlider.onValueChange = [this] { getParams(); };
-    sampleDelaySlider.setValue(delay);
-    sampleDelayLabel.setText("Sample delay (beats)", juce::dontSendNotification);
-    sampleDelayLabel.setJustificationType(juce::Justification::right);
-    sampleDelayLabel.setTooltip("Introduces a delay (in beats) before the sample is played");
 
     // volume
     sampleVolumeSlider.setRange(0, 100, 1);
@@ -89,22 +52,16 @@ Sample::Sample(juce::AudioFormatManager *manager)
     addAndMakeVisible(sampleLabel);
     addAndMakeVisible(sampleCollapseButton);
     addAndMakeVisible(sampleBrowseButton);
-    addAndMakeVisible(sampleBpmSlider);
-    addAndMakeVisible(sampleBpmLabel);
-    addAndMakeVisible(sampleIntervalSlider);
-    addAndMakeVisible(sampleIntervalLabel);
-    addAndMakeVisible(sampleCropLeftSlider);
-    addAndMakeVisible(sampleCropLeftLabel);
-    addAndMakeVisible(sampleCropRightSlider);
-    addAndMakeVisible(sampleCropRightLabel);
-    addAndMakeVisible(sampleDelayLabel);
-    addAndMakeVisible(sampleDelaySlider);
     addAndMakeVisible(sampleVolumeSlider);
     addAndMakeVisible(sampleMuteButton);
     addAndMakeVisible(sampleSoloButton);
     addAndMakeVisible(sampleWaveform);
     
-    addAndMakeVisible(test);
+    addAndMakeVisible(bpm);
+    addAndMakeVisible(cropStart);
+    addAndMakeVisible(cropEnd);
+    addAndMakeVisible(interval);
+    addAndMakeVisible(delay);
 }
 
 Sample::~Sample() {
@@ -143,11 +100,8 @@ void Sample::paint (juce::Graphics& g)
     
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     if(!isWaiting) { // playing
-        //g.fillAll (juce::Colour(50, 100, 50));
         g.setColour(juce::Colour(50, 100, 50));
-        //g.fillRoundedRectangle(getX(), getY(), getWidth(), getHeight(), 20.f);
     } else { // waiting
-        //g.fillAll (juce::Colour(100, 100, 100));
         g.setColour(juce::Colour(80, 80, 80));
     }
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.f);
@@ -155,12 +109,14 @@ void Sample::paint (juce::Graphics& g)
     g.drawRoundedRectangle(getLocalBounds().toFloat(), 10.f, 1.f);
     
     // make sliders reflect true values
-    sampleBpmSlider.setValue(sampleBpm);
+    bpm.update();
+    interval.update();
+    delay.update();
+    cropStart.update();
+    cropEnd.update();
+    
     sampleVolumeSlider.setValue(volume*100.0);
-    sampleIntervalSlider.setValue(interval);
-    sampleDelaySlider.setValue(delay);
-    sampleCropLeftSlider.setValue(cropLeft);
-    sampleCropRightSlider.setValue(cropRight);
+    
     slidersChanged = false;
     
     if(isMuted) sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkred);
@@ -170,22 +126,17 @@ void Sample::paint (juce::Graphics& g)
     else sampleSoloButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkslategrey);
     
     if(collapsed) {
+        bpm.setVisible(false);
         sampleBrowseButton.setVisible(false);
-        sampleBpmSlider.setVisible(false);
-        sampleBpmLabel.setVisible(false);
         sampleVolumeSlider.setVisible(false);
     } else {
+        bpm.setVisible(true);
         sampleBrowseButton.setVisible(true);
-        sampleBpmSlider.setVisible(true);
-        sampleBpmLabel.setVisible(true);
         sampleVolumeSlider.setVisible(true);
     }
 }
 
 void Sample::resized() {
-    // test
-    test.setBounds(660, 0, 300, 40);
-    
     // label
     sampleLabel.setBounds(120, 5, 200, 20);
     
@@ -196,23 +147,17 @@ void Sample::resized() {
     sampleBrowseButton.setBounds(50, 5, 60, 40);
     
     // bpm
-    sampleBpmLabel.setBounds(320, 10, 275, 20);
-    sampleBpmSlider.setBounds(120, 25, 475, 20);
+    bpm.setBounds(120, 10, 475, 40);
     
     // crop
-    sampleCropLeftLabel.setBounds(20, 50, 275, 20);
-    sampleCropLeftSlider.setBounds(20, 65, 275, 20);
-    
-    sampleCropRightLabel.setBounds(320, 50, 275, 20);
-    sampleCropRightSlider.setBounds(320, 65, 275, 20);
-    
+    cropStart.setBounds(20, 50, 275, 40);
+    cropEnd.setBounds(320, 50, 275, 40);
+        
     // interval
-    sampleIntervalLabel.setBounds(20, 90, 275, 20);
-    sampleIntervalSlider.setBounds(20, 105, 275, 20);
+    interval.setBounds(20, 90, 275, 40);
     
     // delay
-    sampleDelayLabel.setBounds(320, 90, 275, 20);
-    sampleDelaySlider.setBounds(320, 105, 275, 20);
+    delay.setBounds(320, 90, 275, 40);
     
     // volume
     sampleVolumeSlider.setBounds(610, 30, 50, 90);
@@ -327,21 +272,17 @@ void Sample::getValue(float &outLeft, float &outRight, long roundedBeat, long pr
 }
 
 void Sample::getParams() {
-    sampleBpm = sampleBpmSlider.getValue();
-    interval = sampleIntervalSlider.getValue();
-    delay = sampleDelaySlider.getValue();
     volume = sampleVolumeSlider.getValue() / 100.0;
-    cropLeft = sampleCropLeftSlider.getValue();
-    cropRight = sampleCropRightSlider.getValue();
 }
 
 void Sample::updateParams(double trackBpm, double trackSampleRate, int precision) {
     // calculations
-    playbackRate = trackBpm / sampleBpm;
+    playbackRate = trackBpm / bpm.getValue();
+    
     playbackRate *= (sampleRate / trackSampleRate); // same rate adjust
     if(trackBpm == 0.0) playbackRate = 0.0;
-    roundedInterval = pow10(interval, precision);
-    roundedDelay = pow10(delay, precision);
+    roundedInterval = pow10(interval.getValue(), precision);
+    roundedDelay = pow10(delay.getValue(), precision);
 }
 
 void Sample::updateBuffers(int numSamples) {
@@ -354,8 +295,8 @@ void Sample::updateBuffers(int numSamples) {
     sampleLength = sampleBuffer->getNumSamples();
     juce::MessageManager::callAsync ([this] { sampleWaveform->repaint(); }); // redraw waveform while we're at it
     
-    startPos = cropLeft * 0.01 * sampleLength;
-    endPos = (1.0 - (cropRight * 0.01)) * sampleLength;
+    startPos = cropStart.getValue() * 0.01 * sampleLength;
+    endPos = (1.0 - (cropEnd.getValue() * 0.01)) * sampleLength;
 }
 
 void Sample::setLabel(std::string label) {
@@ -367,31 +308,27 @@ juce::String Sample::getLabel() {
 }
 
 void Sample::setStart(double start) {
-    //sampleCropLeftSlider.setValue(start);
-    cropLeft = start;
+    cropStart.setValue(start);
     slidersChanged = true;
 }
 
 void Sample::setEnd(double end) {
-    cropRight = end;
-    //sampleCropRightSlider.setValue(end);
+    cropEnd.setValue(end);
     slidersChanged = true;
 }
 
 void Sample::setInterval(double val) {
-    if(val <= 0) return;
-    interval = val;
-    //roundedInterval = pow10(interval, 2);
+    interval.setValue(val);
     slidersChanged = true;
 }
 
 void Sample::setDelay(double val) {
-    delay = val;
+    delay.setValue(val);
     slidersChanged = true;
 }
 
 double Sample::getDelay() {
-    return delay;
+    return delay.getValue();
 }
 
 void Sample::setVolume(double val) {
@@ -400,19 +337,20 @@ void Sample::setVolume(double val) {
 }
 
 void Sample::setBpm(double val) {
-    sampleBpm = val;
+    bpm.setValue(val);
     slidersChanged = true;
 }
 
+// TODO: parameter get value as string to remove nastyness
 std::string Sample::toString() {
     std::string output = "";
     output += "Sample " + sampleLabel.getText().toStdString() + " {\n";
     output += "path " + samplePath + "\n";
-    output += "bpm " + std::to_string(sampleBpm) + "\n";
-    output += "start " + std::to_string(cropLeft) + "\n";
-    output += "end " + std::to_string(cropRight) + "\n";
-    output += "interval " + std::to_string(interval) + "\n";
-    output += "delay " + std::to_string(delay) + "\n";
+    output += "bpm " + std::to_string(bpm.getValue()) + "\n";
+    output += "start " + std::to_string(cropStart.getValue()) + "\n";
+    output += "end " + std::to_string(cropEnd.getValue()) + "\n";
+    output += "interval " + std::to_string(interval.getValue()) + "\n";
+    output += "delay " + std::to_string(delay.getValue()) + "\n";
     output += "volume " + std::to_string(volume) + "\n";
     output += "muted " + std::to_string(isMuted) + "\n";
     output += "collapsed " + std::to_string(collapsed) + "\n";

@@ -36,7 +36,12 @@ public:
 
     bool isLoaded = false;
     
-    Parameter test;
+    // parameters
+    Parameter bpm;
+    Parameter cropStart; // percent
+    Parameter cropEnd; // percent
+    Parameter interval;
+    Parameter delay;
 
 private:
     void browse();
@@ -51,16 +56,6 @@ private:
     juce::Label sampleLabel;
     juce::TextButton sampleCollapseButton;
     juce::TextButton sampleBrowseButton;
-    juce::Slider sampleBpmSlider;
-    juce::Label sampleBpmLabel;
-    juce::Slider sampleIntervalSlider;
-    juce::Label sampleIntervalLabel;
-    juce::Slider sampleCropLeftSlider;
-    juce::Label sampleCropLeftLabel;
-    juce::Slider sampleCropRightSlider;
-    juce::Label sampleCropRightLabel;
-    juce::Slider sampleDelaySlider;
-    juce::Label sampleDelayLabel;
     juce::Slider sampleVolumeSlider;
     
     juce::TextButton sampleSoloButton;
@@ -71,18 +66,11 @@ private:
     
     double curPos = 0.0;
     double sampleLength = 0.0;
-    
-    double sampleBpm = 120.0;
-    double interval = 1.0;
-    double delay = 0.0;
     double volume = 1.0;
     
-    double cropLeft = 0.0;
-    double cropRight = 0.0;
-    
     double playbackRate = 0.0;
-    double startPos = 0.0;
-    double endPos = 0.0;
+    double startPos = 0.0; // in samples
+    double endPos = 0.0; // in samples
     
     double sampleRate = 0.0;
     

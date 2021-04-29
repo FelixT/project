@@ -1,14 +1,11 @@
 #include "Parameter.h"
 
-Parameter::Parameter(std::string label, double min, double max, double step, double value)
-: label(label), min(min), max(max), step(step), value(value) {
+Parameter::Parameter(std::string label, std::string tooltip, double min, double max, double step, double value)
+: label(label), tooltip(tooltip), min(min), max(max), step(step), value(value) {
     
     componentLabel.setJustificationType(juce::Justification::right);
-    componentSlider.setRange(min, max, step);
-    componentSlider.setValue(value);
-    componentLabel.setText(label, juce::dontSendNotification);
-    addAndMakeVisible(componentLabel);
-    addAndMakeVisible(componentSlider);
+    
+    updateAll();
     
     componentSlider.onValueChange = [this] {
         this->value = componentSlider.getValue();
@@ -16,6 +13,7 @@ Parameter::Parameter(std::string label, double min, double max, double step, dou
     
 }
 
+// TODO: check things  get repainted if these change
 void Parameter::setLabel(std::string label) {
     this->label = label;
 }
@@ -29,13 +27,26 @@ void Parameter::setStep(double step) {
     this->step = step;
 }
 void Parameter::setValue(double value) {
-    this->value = value;
+    if(value >= min && value <= max)
+        this->value = value;
 }
 
-void Parameter::updateGraphics() {
+double Parameter::getValue() {
+    return value;
+}
+
+void Parameter::update() {
+    componentSlider.setValue(value);
+}
+
+void Parameter::updateAll() {
+    componentLabel.setTooltip(tooltip);
     componentSlider.setRange(min, max, step);
     componentSlider.setValue(value);
+    componentSlider.setTooltip(tooltip);
     componentLabel.setText(label, juce::dontSendNotification);
+    addAndMakeVisible(componentLabel);
+    addAndMakeVisible(componentSlider);
 }
 
 void Parameter::resized() {
