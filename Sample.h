@@ -1,10 +1,3 @@
-//
-//  Sample.hpp
-//  Proto - App
-//
-//  Created by Felix Thomas on 20/02/2021.
-//
-
 #ifndef Sample_hpp
 #define Sample_hpp
 
@@ -12,6 +5,7 @@
 #include <string>
 #include <JuceHeader.h>
 #include "WaveformView.h"
+#include "Parameter.h"
 
 class Sample : public juce::Component {
     
@@ -40,8 +34,9 @@ public:
     void disable();
     juce::String getLabel();
 
-    
     bool isLoaded = false;
+    
+    Parameter test;
 
 private:
     void browse();

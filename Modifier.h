@@ -1,10 +1,3 @@
-//
-//  Modifier.hpp
-//  Proto - App
-//
-//  Created by Felix Thomas on 01/03/2021.
-//
-
 #ifndef Modifier_hpp
 #define Modifier_hpp
 

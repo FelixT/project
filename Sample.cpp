@@ -1,13 +1,7 @@
-//
-//  Sample.cpp
-//  Proto - App
-//
-//  Created by Felix Thomas on 20/02/2021.
-//
-
 #include "Sample.h"
 
-Sample::Sample(juce::AudioFormatManager *manager) {
+Sample::Sample(juce::AudioFormatManager *manager)
+: test("TEst", 0.25, 2.25, 0.25, 0.5) {
     
     formatManager = manager;
     
@@ -109,6 +103,8 @@ Sample::Sample(juce::AudioFormatManager *manager) {
     addAndMakeVisible(sampleMuteButton);
     addAndMakeVisible(sampleSoloButton);
     addAndMakeVisible(sampleWaveform);
+    
+    addAndMakeVisible(test);
 }
 
 Sample::~Sample() {
@@ -187,6 +183,9 @@ void Sample::paint (juce::Graphics& g)
 }
 
 void Sample::resized() {
+    // test
+    test.setBounds(660, 0, 300, 40);
+    
     // label
     sampleLabel.setBounds(120, 5, 200, 20);
     

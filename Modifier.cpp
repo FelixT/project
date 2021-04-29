@@ -1,10 +1,3 @@
-//
-//  Modifier.cpp
-//  Proto - App
-//
-//  Created by Felix Thomas on 01/03/2021.
-//
-
 #include "Modifier.h"
 
 
