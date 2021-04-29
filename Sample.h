@@ -12,6 +12,7 @@ class Sample : public juce::Component {
 public:
     Sample(juce::AudioFormatManager *manager);
     ~Sample();
+    std::vector<Parameter*> getParams();
     void paint (juce::Graphics& g) override;
     void resized() override;
     void getValue(float &outLeft, float &outRight, long roundedBeat, long prevBeat);
@@ -46,7 +47,6 @@ public:
 private:
     void browse();
     long pow10(float input, int power);
-    void getParams();
     bool loadSample(juce::File file);
     void mouseDown(const juce::MouseEvent &event) override;
     
@@ -80,8 +80,9 @@ private:
     const float *inLeftBuffer;
     const float *inRightBuffer;
     
-    bool isWaiting = true;
     bool slidersChanged = false;
+
+    bool isWaiting = true;
     bool isDisabled = false;
     bool isMuted = false;
     bool isSoloed = false;

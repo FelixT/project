@@ -18,7 +18,7 @@ public:
     ~Modifier();
     void paint (juce::Graphics& g) override;
     void resized() override;
-    void updateDropdown();
+    void refreshDropdownItems();
     void tick(long roundedBeat, long prevBeat);
     void updateParams(int precision);
     std::string toString();
@@ -33,12 +33,21 @@ public:
     void setParameter(int index);
     void setEquation(std::string eqn);
     void updateEuclidean();
+    
+    Parameter interval;
+    Parameter min;
+    Parameter max;
+    Parameter step;
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
     void tickEuclidean(long roundedBeat, long prevBeat);
     void tickRandom(long roundedBeat, long prevBeat);
     void tickEquation(long roundedBeat, long prevBeat);
+    void showRandomControls();
+    void showEuclideanControls();
+    void drawEuclideanPattern(juce::Graphics& g);
+    void showEquationControls();
     void getParams();
     void changeMode();
     void populatePresets();
@@ -71,14 +80,6 @@ private:
     juce::ComboBox modifierSelect;
     juce::Label modifierParameterLabel;
     juce::ComboBox modifierParameter;
-    juce::Label modifierIntervalLabel;
-    juce::Slider modifierInterval;
-    juce::Label modifierMinLabel;
-    juce::Slider modifierMin;
-    juce::Label modifierMaxLabel;
-    juce::Slider modifierMax;
-    juce::Label modifierStepLabel;
-    juce::Slider modifierStep;
     juce::TextButton modifierChangeMode;
     juce::TextEditor modifierEquation;
     juce::Label modifierEquationLabel;
@@ -94,16 +95,15 @@ private:
     
     juce::Label modifierPosition;
     
-    double interval = 16.0;
-    double min = 2.0; // integer doubles up as number of pulses in a Euclidean rhythm
-    double max = 4.0;
-    double step = 0.25;
     int selected = -1; // index of selected sample/modifier (depending on state)
     
     enum modifierParameter parameter = PARAMETER_IDLE;
     modifierState state = STATE_IDLE;
     
+    
     bool slidersChanged = false;
+    bool dropdownChanged = false;
+    bool modeChanged = false;
     
     std::vector<bool> modifierEuclideanRhythm;
     

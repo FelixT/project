@@ -368,6 +368,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             sample->getValue(outLeft, outRight, roundBeat, prevBeat);
         }
         
+
         leftBuffer[sampleOffset] = outLeft*masterVolume;
         rightBuffer[sampleOffset] = outRight*masterVolume;
         

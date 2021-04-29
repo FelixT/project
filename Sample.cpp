@@ -34,7 +34,7 @@ delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0,
     sampleVolumeSlider.setValue(volume*100.0);
     sampleVolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
     sampleVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 30);
-    sampleVolumeSlider.onValueChange = [this] { getParams(); };
+    sampleVolumeSlider.onValueChange = [this] { volume = sampleVolumeSlider.getValue() / 100.0; };
     sampleVolumeSlider.setTooltip("Change the sample's playback volume");
     
     // mute & solo
@@ -57,6 +57,7 @@ delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0,
     addAndMakeVisible(sampleSoloButton);
     addAndMakeVisible(sampleWaveform);
     
+    // params
     addAndMakeVisible(bpm);
     addAndMakeVisible(cropStart);
     addAndMakeVisible(cropEnd);
@@ -68,6 +69,16 @@ Sample::~Sample() {
     delete sampleReader;
     delete sampleBuffer;
     formatManager = nullptr;
+}
+
+std::vector<Parameter*> Sample::getParams() {
+    std::vector<Parameter*> params;
+    params.push_back(&bpm);
+    params.push_back(&cropStart);
+    params.push_back(&cropEnd);
+    params.push_back(&interval);
+    params.push_back(&delay);
+    return params;
 }
 
 void Sample::mouseDown(const juce::MouseEvent &event) {
@@ -96,7 +107,6 @@ void Sample::disable() {
 
 void Sample::paint (juce::Graphics& g)
 {
-    std::cout << "Painting sample" << std::endl;
     
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     if(!isWaiting) { // playing
@@ -109,16 +119,18 @@ void Sample::paint (juce::Graphics& g)
     g.drawRoundedRectangle(getLocalBounds().toFloat(), 10.f, 1.f);
     
     // make sliders reflect true values
-    bpm.update();
-    interval.update();
-    delay.update();
-    cropStart.update();
-    cropEnd.update();
-    
-    sampleVolumeSlider.setValue(volume*100.0);
-    
-    slidersChanged = false;
-    
+    if(slidersChanged) {
+        bpm.update();
+        interval.update();
+        delay.update();
+        cropStart.update();
+        cropEnd.update();
+        
+        sampleVolumeSlider.setValue(volume*100.0);
+        
+        slidersChanged = false;
+    }
+        
     if(isMuted) sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkred);
     else sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkslategrey);
     
@@ -271,10 +283,6 @@ void Sample::getValue(float &outLeft, float &outRight, long roundedBeat, long pr
     }
 }
 
-void Sample::getParams() {
-    volume = sampleVolumeSlider.getValue() / 100.0;
-}
-
 void Sample::updateParams(double trackBpm, double trackSampleRate, int precision) {
     // calculations
     playbackRate = trackBpm / bpm.getValue();
@@ -287,13 +295,14 @@ void Sample::updateParams(double trackBpm, double trackSampleRate, int precision
 
 void Sample::updateBuffers(int numSamples) {
     if(slidersChanged) juce::MessageManager::callAsync ([this] { repaint(); });
+    juce::MessageManager::callAsync ([this] { sampleWaveform->repaint(); }); // redraw waveform while we're at it
     
     // get samples buffers
     const juce::AudioSourceChannelInfo sampleFill(sampleBuffer, 0, numSamples);
     inLeftBuffer = sampleFill.buffer->getReadPointer(0, 0);
     inRightBuffer = sampleFill.buffer->getReadPointer(1, 0);
     sampleLength = sampleBuffer->getNumSamples();
-    juce::MessageManager::callAsync ([this] { sampleWaveform->repaint(); }); // redraw waveform while we're at it
+    
     
     startPos = cropStart.getValue() * 0.01 * sampleLength;
     endPos = (1.0 - (cropEnd.getValue() * 0.01)) * sampleLength;
@@ -327,13 +336,13 @@ void Sample::setDelay(double val) {
     slidersChanged = true;
 }
 
-double Sample::getDelay() {
-    return delay.getValue();
-}
-
 void Sample::setVolume(double val) {
     volume = val;
     slidersChanged = true;
+}
+
+double Sample::getDelay() {
+    return delay.getValue();
 }
 
 void Sample::setBpm(double val) {

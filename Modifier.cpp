@@ -15,77 +15,66 @@
 // by Godfried Toussaint
 // http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf
 
-Modifier::Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer) {
-    setOpaque(true);
+Modifier::Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer)
+: interval("Interval (beats)", "", 1.0, 32.0, 1.0, 16.0),
+min("Minimum value", "Lowest possible value which the parameter could be assigned", 0.25, 10.0, 0.25, 2.0),
+max("Maximum value", "Highest possible value which the parameter could be assigned", 0.25, 10.0, 0.25, 4.0),
+step("Value step", "Constrains output to be a multiple of this", 0.25, 10.0, 0.25, 0.25)
+{
+    setOpaque(true); // ??
     
     samples = samplesPointer;
     modifiers = modifiersPointer;
     
-    modifierParameter.addItem("Interval", 1);
-    modifierParameter.addItem("Delay", 2);
-    modifierParameter.addItem("BPM", 3);
-    
-    modifierParameterLabel.setText("Parameter to modify:", juce::dontSendNotification);
-    modifierParameter.onChange = [this] { getParams(); };
+    // select sample/modifier
     modifierSelectLabel.setText("Object to modify:", juce::dontSendNotification);
     modifierSelectLabel.setTooltip("Select a sample or even another modifier to have its parameters automatically changed by this modifier");
     modifierSelect.onChange = [this] { getParams(); };
     
+    // parameter
+    modifierParameter.addItem("Interval", 1);
+    modifierParameter.addItem("Delay", 2);
+    modifierParameter.addItem("BPM", 3);
+    modifierParameterLabel.setText("Parameter to modify:", juce::dontSendNotification);
+    modifierParameter.onChange = [this] { getParams(); };
+   
+    // presets
+    populatePresets();
+    modifierPresetMenu.onChange = [this] { selectPreset(); };
+    modifierPresetLabel.setText("Preset", juce::dontSendNotification);
     
-    modifierIntervalLabel.setText("Interval (beats)", juce::dontSendNotification);
-    modifierInterval.setRange(1, 32, 1);
-    modifierInterval.setValue(interval, juce::dontSendNotification);
-    modifierInterval.onValueChange = [this] { getParams(); };
-
-    modifierMinLabel.setText("Minimum value", juce::dontSendNotification);
-    modifierMin.setRange(0.25, 10, 0.25);
-    modifierMin.setValue(min, juce::dontSendNotification);
-    modifierMin.onValueChange = [this] { getParams(); };
-
-    modifierMaxLabel.setText("Maximum value", juce::dontSendNotification);
-    modifierMaxLabel.setTooltip("Highest possible value which the parameter could be assigned");
-    modifierMax.setRange(0.25, 10, 0.25);
-    modifierMax.setValue(max, juce::dontSendNotification);
-    modifierMax.onValueChange = [this] { getParams(); };
-
-    modifierStepLabel.setText("Value step", juce::dontSendNotification);
-    modifierStepLabel.setTooltip("Value generated must be divisible by this");
-    modifierStep.setRange(0.25, 10, 0.25);
-    modifierStep.setValue(step, juce::dontSendNotification);
-    modifierStep.onValueChange = [this] { getParams(); };
-    
+    // mode
     modifierChangeMode.setButtonText("Random");
     modifierChangeMode.onClick = [this] { changeMode(); };
     modifierChangeMode.setTooltip("Change modifier mode");
     
+    // help
     modifierHelp.setButtonText("?");
     modifierHelp.onClick = [this] {
         // TODO: change this to be a tool tip
         juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::AlertIconType::InfoIcon, "Modifier Help", toolTip());
-        };
+    };
     modifierHelp.setTooltip("What does this do?");
     
+    // euclidean position
     modifierBack.setButtonText("<");
     modifierBack.onClick = [this] { euclideanPosition-=1; euclideanPosition%=modifierEuclideanRhythm.size(); };
     modifierBack.setTooltip("Change pattern position");
+    
+    modifierPosition.setJustificationType(juce::Justification::centred);
     
     modifierForward.setButtonText(">");
     modifierForward.onClick = [this] { euclideanPosition+=1; euclideanPosition%=modifierEuclideanRhythm.size(); };
     modifierBack.setTooltip("Change pattern position");
     
-    modifierPosition.setJustificationType(juce::Justification::centred);
-    
+    // equation
     modifierEquation.setText(equation, juce::dontSendNotification);
     modifierEquation.onTextChange = [this] { getParams(); };
     modifierEquationLabel.setText("Equation", juce::dontSendNotification);
     
-    populatePresets();
-    modifierPresetMenu.onChange = [this] { selectPreset(); };
-    modifierPresetLabel.setText("Preset", juce::dontSendNotification);
-    
     modifierRefresh.setButtonText("Refresh");
-    modifierRefresh.onClick = [this] { updateDropdown(); };
-    modifierRefresh.setTooltip("Refresh the dropdown");
+    modifierRefresh.onClick = [this] { refreshDropdownItems(); };
+    modifierRefresh.setTooltip("Refresh the dropdown items");
     
     addChildComponent(modifierEquation);
     addChildComponent(modifierEquationLabel);
@@ -100,19 +89,15 @@ Modifier::Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> 
     addAndMakeVisible(modifierSelect);
     addAndMakeVisible(modifierRefresh);
     addAndMakeVisible(modifierParameter);
-    addAndMakeVisible(modifierInterval);
-    addAndMakeVisible(modifierMin);
-    addAndMakeVisible(modifierMax);
-    addAndMakeVisible(modifierStep);
     addAndMakeVisible(modifierChangeMode);
-    addAndMakeVisible(modifierIntervalLabel);
-    addAndMakeVisible(modifierMaxLabel);
-    addAndMakeVisible(modifierMinLabel);
-    addAndMakeVisible(modifierStepLabel);
     addAndMakeVisible(modifierParameterLabel);
     addAndMakeVisible(modifierSelectLabel);
     addAndMakeVisible(modifierHelp);
 
+    addAndMakeVisible(interval);
+    addAndMakeVisible(min);
+    addAndMakeVisible(max);
+    addAndMakeVisible(step);
     
 }
 
@@ -282,8 +267,8 @@ std::vector<bool> Modifier::genEuclideanRhythm(int length, int pulses) {
     return output;
 }
 
-void Modifier::updateDropdown() {
-    std::cout << "updating the drop down" << std::endl;
+void Modifier::refreshDropdownItems() {
+    std::cout << "refreshing the drop down" << std::endl;
     
     modifierSelect.clear(juce::dontSendNotification);
     
@@ -313,26 +298,150 @@ void Modifier::updateDropdown() {
     }
 }
 
+void Modifier::showRandomControls() {
+    modifierChangeMode.setButtonText("Random");
+    
+    min.setVisible(true);
+    min.setLabel("Minimum value");
+    min.setTooltip("Lowest possible value which the parameter could be assigned");
+    min.updateAll();
+            
+    max.setVisible(true);
+    
+    step.setVisible(true);
+    step.setLabel("Value step");
+    step.updateAll();
+    
+    interval.setLabel("Interval (beats)");
+    interval.setTooltip("How often (in beats) the modifier should fire");
+    
+    modifierParameter.setVisible(true);
+    modifierParameterLabel.setVisible(true);
+    modifierEquation.setVisible(false);
+    modifierEquationLabel.setVisible(false);
+    
+    modifierPresetLabel.setVisible(false);
+    modifierPresetMenu.setVisible(false);
+    
+    modifierPosition.setVisible(false);
+    
+    modifierBack.setVisible(false);
+    modifierForward.setVisible(false);
+}
+
+void Modifier::showEuclideanControls() {
+    modifierChangeMode.setButtonText("Euclidean");
+    
+    min.setVisible(true);
+    min.setLabel("Hits per cycle");
+    min.setTooltip("How many 'hits' (i.e. times the sample will be played) per cycle");
+    min.updateAll();
+    
+    max.setVisible(false);
+    
+    step.setVisible(true);
+    
+    step.setVisible(true);
+    step.setLabel("Rhythm pulse length (beats)");
+    step.setTooltip("How long each 'pulse' ('hit' or 'break') should be (in beats)");
+    step.updateAll();
+    
+    interval.setLabel("Euclidean rhythm length (beats)");
+    interval.setTooltip("How long the Euclidean rhythm cycle should be (in beats)");
+    interval.updateAll();
+    
+    modifierParameter.setVisible(false);
+    modifierParameterLabel.setVisible(false);
+    
+    modifierEquation.setVisible(false);
+    modifierEquationLabel.setVisible(false);
+    
+    modifierPresetLabel.setVisible(true);
+    modifierPresetMenu.setVisible(true);
+    
+    modifierPosition.setVisible(true);
+    
+    modifierBack.setVisible(true);
+    modifierForward.setVisible(true);
+}
+
+void Modifier::drawEuclideanPattern(juce::Graphics& g) {
+    if(modifierEuclideanRhythm.size() >= 0) {
+        // paint graphical representation of the euclidean rhythm
+        int x = 550;
+        int y = 25;
+        
+        // white background rectangle
+        g.setColour(juce::Colours::white);
+        g.fillRoundedRectangle(x, y, 20*modifierEuclideanRhythm.size(), 20, 4.f);
+        
+        for(int i = 0; i < modifierEuclideanRhythm.size(); i++) {
+            if(modifierEuclideanRhythm.at(i)) g.setColour(juce::Colours::green);
+            else g.setColour(juce::Colours::red);
+            
+            if(euclideanPosition == i) g.setOpacity(1.0f);
+            else g.setOpacity(0.6f);
+            
+            
+            g.fillRoundedRectangle(x+1, y+1, 20-2, 20-2, 7.f);
+            x+=20;
+        }
+    }
+}
+
+void Modifier::showEquationControls() {
+    modifierChangeMode.setButtonText("Equation");
+    
+    min.setVisible(false);
+    
+    max.setVisible(false);
+    
+    step.setVisible(true);
+    step.setLabel("Rhythm pulse length (beats)");
+    step.updateAll();
+    
+    interval.setLabel("Interval");
+    interval.updateAll();
+    
+    modifierParameter.setVisible(true);
+    modifierParameterLabel.setVisible(true);
+    
+    modifierEquation.setVisible(true);
+    modifierEquationLabel.setVisible(true);
+    
+    modifierPresetLabel.setVisible(false);
+    modifierPresetMenu.setVisible(false);
+    
+    modifierPosition.setVisible(true);
+    
+    modifierBack.setVisible(false);
+    modifierForward.setVisible(false);
+}
+
 void Modifier::paint(juce::Graphics& g) {
         
     // TODO: implement slidersChanged
     
-    g.setColour(background);
+    if(slidersChanged) {
+        // make sliders reflect true values
+        interval.update();
+        min.update();
+        max.update();
+        step.update();
+        slidersChanged = false;
+    }
     
+    // draw background
+    g.setColour(background);
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.f);
     
     // update position
     modifierPosition.setText(std::to_string(euclideanPosition), juce::dontSendNotification);
     
-    // make sliders reflect true values
-    modifierInterval.setValue(interval, juce::dontSendNotification);
-    modifierMin.setValue(min, juce::dontSendNotification);
-    modifierMax.setValue(max, juce::dontSendNotification);
-    modifierStep.setValue(step, juce::dontSendNotification);
+    // refresh dropdown items
+    refreshDropdownItems();
     
-    updateDropdown();
-    
-    // update which dropdown is selected
+    // update which dropdown item is selected
     if(state == STATE_IDLE)
         modifierSelect.setSelectedId(1, juce::dontSendNotification);
     if(state == STATE_SAMPLE)
@@ -343,127 +452,13 @@ void Modifier::paint(juce::Graphics& g) {
     modifierParameter.setSelectedId(parameter, juce::dontSendNotification);
     
     if(mode == MODE_RANDOM) {
-        
-        
-        modifierChangeMode.setButtonText("Random");
-        
-        modifierMin.setVisible(true);
-        modifierMinLabel.setVisible(true);
-        modifierMinLabel.setText("Minimum value", juce::dontSendNotification);
-        modifierMinLabel.setTooltip("Lowest possible value which the parameter could be assigned");
-        
-        modifierMax.setVisible(true);
-        modifierMaxLabel.setVisible(true);
-        
-        modifierStep.setVisible(true);
-        modifierStepLabel.setVisible(true);
-        modifierStepLabel.setText("Value step", juce::dontSendNotification);
-        //modifierStepLabel.setText("Step");
-        
-        modifierIntervalLabel.setText("Interval (beats)", juce::dontSendNotification);
-        modifierIntervalLabel.setTooltip("How often (in beats) the modifier should fire");
-        modifierParameter.setVisible(true);
-        modifierParameterLabel.setVisible(true);
-        modifierEquation.setVisible(false);
-        modifierEquationLabel.setVisible(false);
-        
-        modifierPresetLabel.setVisible(false);
-        modifierPresetMenu.setVisible(false);
-        
-        modifierPosition.setVisible(false);
-        
-        modifierBack.setVisible(false);
-        modifierForward.setVisible(false);
-        
+        showRandomControls();
     } else if(mode == MODE_EUCLIDEAN) {
-        
-        modifierChangeMode.setButtonText("Euclidean");
-        
-        modifierMin.setVisible(true);
-        modifierMinLabel.setVisible(true);
-        modifierMinLabel.setText("Hits per cycle", juce::dontSendNotification);
-        modifierMinLabel.setTooltip("How many 'hits' (i.e. times the sample will be played) per cycle");
-        
-        modifierMax.setVisible(false);
-        modifierMaxLabel.setVisible(false);
-        
-        modifierStep.setVisible(true);
-        modifierStepLabel.setVisible(true);
-        modifierStepLabel.setText("Rhythm pulse length (beats)", juce::dontSendNotification);
-        modifierStepLabel.setTooltip("How long each 'pulse' ('hit' or 'break') should be (in beats)");
-        
-        modifierIntervalLabel.setText("Euclidean rhythm length (beats)", juce::dontSendNotification);
-        modifierIntervalLabel.setTooltip("How long the Euclidean rhythm cycle should be (in beats)");
-        
-        modifierParameter.setVisible(false);
-        modifierParameterLabel.setVisible(false);
-        
-        modifierEquation.setVisible(false);
-        modifierEquationLabel.setVisible(false);
-        
-        modifierPresetLabel.setVisible(true);
-        modifierPresetMenu.setVisible(true);
-        
-        modifierPosition.setVisible(true);
-        
-        modifierBack.setVisible(true);
-        modifierForward.setVisible(true);
-        
-        if(modifierEuclideanRhythm.size() >= 0) {
-            // paint graphical representation of the euclidean rhythm
-            int x = 550;
-            int y = 25;
-            
-            // white background rectangle
-            g.setColour(juce::Colours::white);
-            g.fillRoundedRectangle(x, y, 20*modifierEuclideanRhythm.size(), 20, 4.f);
-            
-            for(int i = 0; i < modifierEuclideanRhythm.size(); i++) {
-                if(modifierEuclideanRhythm.at(i)) g.setColour(juce::Colours::green);
-                else g.setColour(juce::Colours::red);
-                
-                if(euclideanPosition == i) g.setOpacity(1.0f);
-                else g.setOpacity(0.6f);
-                
-                
-                g.fillRoundedRectangle(x+1, y+1, 20-2, 20-2, 7.f);
-                x+=20;
-            }
-        }
-        
+        showEuclideanControls();
+        drawEuclideanPattern(g);
     } else if(mode == MODE_EQUATION) {
-       
-        modifierChangeMode.setButtonText("Equation");
-        
-        modifierMin.setVisible(false);
-        modifierMinLabel.setVisible(false);
-        
-        modifierMax.setVisible(false);
-        modifierMaxLabel.setVisible(false);
-        
-        modifierStep.setVisible(true);
-        modifierStepLabel.setVisible(true);
-        modifierStepLabel.setText("Rhythm pulse length (beats)", juce::dontSendNotification);
-
-        modifierIntervalLabel.setText("Interval", juce::dontSendNotification);
-        
-        modifierParameter.setVisible(true);
-        modifierParameterLabel.setVisible(true);
-        
-        modifierEquation.setVisible(true);
-        modifierEquationLabel.setVisible(true);
-        
-        modifierPresetLabel.setVisible(false);
-        modifierPresetMenu.setVisible(false);
-        
-        modifierPosition.setVisible(true);
-        
-        modifierBack.setVisible(false);
-        modifierForward.setVisible(false);
-       
+        showEquationControls();
    }
-    
-    slidersChanged = false;
 }
 
 
@@ -476,15 +471,10 @@ void Modifier::resized() {
     modifierParameterLabel.setBounds(15, 40, 120, 20);
     modifierParameter.setBounds(15, 60, 120, 20);
     
-    modifierIntervalLabel.setBounds(200, 0, 150, 20);
-    modifierInterval.setBounds(200, 20, 150, 20);
-    
-    modifierMinLabel.setBounds(200, 40, 150, 20);
-    modifierMin.setBounds(200, 60, 150, 20);
-    modifierMaxLabel.setBounds(350, 40, 150, 20);
-    modifierMax.setBounds(350, 60, 150, 20);
-    modifierStepLabel.setBounds(550, 40, 150, 20);
-    modifierStep.setBounds(550, 60, 150, 20);
+    interval.setBounds(200, 0, 150, 40);
+    min.setBounds(200, 40, 150, 40);
+    max.setBounds(350, 40, 150, 40);
+    step.setBounds(550, 40, 150, 40);
     
     modifierChangeMode.setBounds(550, 5, 120, 20);
     
@@ -503,22 +493,22 @@ void Modifier::resized() {
 }
 
 void Modifier::setInterval(double val) {
-    interval = val;
+    interval.setValue(val);
     slidersChanged = true;
 }
 
 void Modifier::setMin(double val) {
-    min = val;
+    min.setValue(val);
     slidersChanged = true;
 }
 
 void Modifier::setMax(double val) {
-    max = val;
+    max.setValue(val);
     slidersChanged = true;
 }
 
 void Modifier::setStep(double val) {
-    step = val;
+    step.setValue(val);
     slidersChanged = true;
 }
 
@@ -575,14 +565,14 @@ void Modifier::tickEuclidean(long roundedBeat, long prevBeat) {
                 juce::MessageManager::callAsync ([this] { repaint(); });
 
                 
-                sample->setInterval(step); // play immediately?
+                sample->setInterval(step.getValue()); // play immediately?
             } else {
                 // don't play
                 background = juce::Colour(100, 100, 100);
                 juce::MessageManager::callAsync ([this] { repaint(); });
                 
                 // disable the sample from starting for an interval of 'step'
-                sample->setInterval(step);
+                sample->setInterval(step.getValue());
                 sample->disable();
 
             }
@@ -602,13 +592,13 @@ void Modifier::tickRandom(long roundedBeat, long prevBeat) {
         
         juce::Random r = juce::Random();
         
-        int iMin = (int)std::ceil(min / step);
-        int iMax = (int)std::floor(max / step);
+        int iMin = (int)std::ceil(min.getValue() / step.getValue());
+        int iMax = (int)std::floor(max.getValue() / step.getValue());
         int iRange = iMax - iMin;
         
         if(iMax > 0 && iRange > 0) {
             int n = r.nextInt(iRange + 1) + iMin;
-            double newVal = (double)n*step;
+            double newVal = (double)n*step.getValue();
             
             if(state == STATE_SAMPLE) {
                 Sample *sample = samples->at(selected);
@@ -634,7 +624,7 @@ void Modifier::tickEquation(long roundedBeat, long prevBeat) {
     
     if((roundedBeat > prevBeat) && ((roundedBeat % roundedStep) == 0)) {
         euclideanPosition+=1;
-        euclideanPosition%=(int)interval;
+        euclideanPosition%=(int)interval.getValue();
         
         if(selected >= 0 & selected < samples->size()) {
            // valid sample selected
@@ -668,8 +658,8 @@ void Modifier::tick(long roundedBeat, long prevBeat) {
 }
 
 void Modifier::updateEuclidean() {
-    int length = (int)interval;
-    int beats = (int)min;
+    int length = (int)interval.getValue();
+    int beats = (int)min.getValue();
     
     modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
     
@@ -677,18 +667,13 @@ void Modifier::updateEuclidean() {
     if(selected >= 0 & selected < samples->size()) {
        // valid sample selected
         Sample *sample = samples->at(selected);
-        sample->setInterval(interval);
+        sample->setInterval(interval.getValue());
     }
 }
 
 void Modifier::getParams() {
         
     modifierPresetMenu.setSelectedId(0);
-    
-    interval = modifierInterval.getValue();
-    min = modifierMin.getValue();
-    max = modifierMax.getValue();
-    step = modifierStep.getValue();
     
     int selectedId = modifierSelect.getSelectedId();
     
@@ -718,8 +703,8 @@ void Modifier::getParams() {
 void Modifier::updateParams(int precision) {
     if(slidersChanged) juce::MessageManager::callAsync ([this] { repaint(); });
     
-    roundedInterval = pow10((float)interval, precision);
-    roundedStep = pow10((float)step, precision);
+    roundedInterval = pow10((float)interval.getValue(), precision);
+    roundedStep = pow10((float)step.getValue(), precision);
 }
 
 std::string Modifier::toString() {
@@ -729,10 +714,10 @@ std::string Modifier::toString() {
     output += "state " + std::to_string(state) + "\n";
     output += "parameter " + std::to_string(parameter) + "\n";
     output += "selected " + std::to_string(selected) + "\n";
-    output += "interval " + std::to_string(interval) + "\n";
-    output += "min " + std::to_string(min) + "\n";
-    output += "max " + std::to_string(max) + "\n";
-    output += "step " + std::to_string(step) + "\n";
+    output += "interval " + std::to_string(interval.getValue()) + "\n";
+    output += "min " + std::to_string(min.getValue()) + "\n";
+    output += "max " + std::to_string(max.getValue()) + "\n";
+    output += "step " + std::to_string(step.getValue()) + "\n";
     output += "equation " + equation + "\n";
     output += "}\n";
     return output;
@@ -852,11 +837,11 @@ void Modifier::selectPreset() {
     if(id > 0) {
         euclideanPreset preset = euclideanPresets.at(id-1);
         
-        interval = (double)preset.interval;
-        min = (double)preset.hits;
+        interval.setValue((double)preset.interval);
+        min.setValue((double)preset.hits);
         
-        int length = (int)interval;
-        int beats = (int)min;
+        int length = (int)interval.getValue();
+        int beats = (int)min.getValue();
         
         modifierEuclideanRhythm = genEuclideanRhythm(length, beats);
     }
@@ -872,11 +857,11 @@ std::string Modifier::toolTip() {
     if(parameterName.empty()) parameterName = "<not selected>";
     
     if(mode == MODE_RANDOM) {
-        str = "This modifier changes the sample " + sampleName + "'s " + parameterName + " to a random value between " + std::to_string(min) + " and " + std::to_string(max) + " which is divisible by " + std::to_string(step) + ", every " + std::to_string(interval) + " beats.";
+        str = "This modifier changes the sample " + sampleName + "'s " + parameterName + " to a random value between " + std::to_string(min.getValue()) + " and " + std::to_string(max.getValue()) + " which is divisible by " + std::to_string(step.getValue()) + ", every " + std::to_string(interval.getValue()) + " beats.";
     }
     
     if(mode == MODE_EUCLIDEAN) {
-        str = "This modifier uses a Euclidean algorithm to generate a rhythm for sample " + sampleName + " of length " + std::to_string((int)interval) + " , containing " + std::to_string((int)min) + " pulses and " + std::to_string((int)interval-(int)min) + " breaks. Each pulse or break lasts " + std::to_string(step) + " beats.";
+        str = "This modifier uses a Euclidean algorithm to generate a rhythm for sample " + sampleName + " of length " + std::to_string((int)interval.getValue()) + " , containing " + std::to_string((int)min.getValue()) + " pulses and " + std::to_string((int)interval.getValue()-(int)min.getValue()) + " breaks. Each pulse or break lasts " + std::to_string(step.getValue()) + " beats.";
     }
     
     return str;

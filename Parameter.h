@@ -12,6 +12,7 @@ public:
     void setMax(double max);
     void setStep(double step);
     void setValue(double value);
+    void setTooltip(std::string tooltip);
     double getValue();
     void update();
     void updateAll();

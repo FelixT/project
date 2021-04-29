@@ -30,13 +30,15 @@ void Parameter::setValue(double value) {
     if(value >= min && value <= max)
         this->value = value;
 }
-
+void Parameter::setTooltip(std::string tooltip) {
+    this->tooltip = tooltip;
+}
 double Parameter::getValue() {
     return value;
 }
 
 void Parameter::update() {
-    componentSlider.setValue(value);
+    componentSlider.setValue(value, juce::dontSendNotification); // don't bother sending a notification to the slider's onValueChange
 }
 
 void Parameter::updateAll() {
