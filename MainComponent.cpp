@@ -3,31 +3,25 @@
 
 //==============================================================================
 MainComponent::MainComponent()
+: bpm("Project BPM", "Overall beats per minute for the session", 5.0, 500.0, 0.1, 120.0),
+sineFrequency("Sine frequency", "Frequency for sine wave generator", 0.0, 2000.0, 1.0, 0.0),
+sineNoteLength("Sine note length (%)", "Proportion of each beat to play the sine wave for. Set to 0 to disable sine.", 0.0, 100.0, 1.0, 0.0)
 {
-        
-    bpmSlider.setRange(5, 500, 0.1);
-    bpmSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 100, 20);
-    bpmSlider.setValue(120);
-    bpmLabel.setText("BPM", juce::dontSendNotification);
+    startTimer(25);
     
     masterVolumeSlider.setRange(0, 1, 0.01);
     masterVolumeSlider.setValue(1.0);
     masterVolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
-    masterVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 30);
-    masterVolumeLabel.setText("Master volume", juce::dontSendNotification);
+    masterVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 75, 17);
+    masterVolumeLabel.setText("Master volume:", juce::dontSendNotification);
+    masterVolumeLabel.setJustificationType(juce::Justification::centred);
     
-    freqSlider.setRange(0, 2000, 0.1);
-    freqSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
-    freqLabel.setText("Frequency", juce::dontSendNotification);
-    
-    noteLengthSlider.setRange(0, 100, 0.1);
-    noteLengthSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 70, 20);
-    noteLengthLabel.setText("Note Length (%)", juce::dontSendNotification);
-    
-    curBeatLabel.setText("0", juce::dontSendNotification);
-    curBeatLabel.setColour(juce::Label::backgroundColourId, findColour(juce::ResizableWindow::backgroundColourId));
-    //curBeatLabel.setPaintingIsUnclipped(true);
+    curBeatLabel.setText("0.00", juce::dontSendNotification);
+    curBeatLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0,0,0));
+    curBeatLabel.setJustificationType(juce::Justification::centred);
+    curBeatLabel.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 14.f, juce::Font::bold));
     curBeatLabel.setOpaque(true);
+    curBeatLabel.setTooltip("Current beat count: click this to reset it to 0.");
     
     sampleAddButton.setButtonText("Add sample");
     sampleAddButton.onClick = [this] { addSample(); };
@@ -59,14 +53,8 @@ MainComponent::MainComponent()
     modifiersViewport.setViewedComponent(&modifiersComponent, false);
     
     addAndMakeVisible(tooltipWindow);
-    addAndMakeVisible(freqSlider);
-    addAndMakeVisible(freqLabel);
-    addAndMakeVisible(bpmSlider);
-    addAndMakeVisible(bpmLabel);
     addAndMakeVisible(masterVolumeLabel);
     addAndMakeVisible(masterVolumeSlider);
-    addAndMakeVisible(noteLengthSlider);
-    addAndMakeVisible(noteLengthLabel);
     addAndMakeVisible(curBeatLabel);
     addAndMakeVisible(sampleAddButton);
     addAndMakeVisible(resetBeatButton);
@@ -77,9 +65,13 @@ MainComponent::MainComponent()
     addAndMakeVisible(samplesViewport);
     addAndMakeVisible(modifiersViewport);
     
+    addAndMakeVisible(bpm);
+    addAndMakeVisible(sineFrequency);
+    addAndMakeVisible(sineNoteLength);
+    
     formatManager.registerBasicFormats();
     
-    setSize (800, 600);
+    setSize (880, 660);
 
     setAudioChannels (0, 2);
 }
@@ -95,7 +87,7 @@ MainComponent::~MainComponent()
 std::string MainComponent::getState() {
     std::string output = "";
     output += "Project <name> {\n";
-    output += "bpm " + std::to_string(bpmSlider.getValue()) + "\n";
+    output += "bpm " + std::to_string(bpm.getValue()) + "\n";
     output += "}\n";
     for(int i = 0; i < samples.size(); i++) {
         Sample *sample = samples.at(i);
@@ -206,7 +198,7 @@ void MainComponent::loadState() {
                     if(state == STATE_IN_PROJECT_BLOCK) {
                         std::cout << "with " << first << " '" << second << "'" << std::endl;
 
-                        if(first == "bpm") bpmSlider.setValue(std::stod(second));
+                        if(first == "bpm") { bpm.setValue(std::stod(second)); bpm.update(); }
                     } else if(state == STATE_IN_SAMPLE_BLOCK) {
                         
                         if(first == "path") samples.back()->setPath(second);
@@ -294,7 +286,7 @@ void MainComponent::addModifier() {
 // TODO: make wave its on separate class
 void MainComponent::getWaveValue(float &outLeft, float &outRight) {
     curWaveAngle+=waveAngleDelta;
-    if(waveEnabled && (fmod(curBeat, 1) < waveNoteLength)) {
+    if(waveEnabled && (fmod(curBeat, 1) < sineNoteLength.getValue()/100.0)) {
         float waveValue = std::sinf(curWaveAngle) * waveVolume;
         outLeft += waveValue;
         outRight += waveValue;
@@ -303,11 +295,10 @@ void MainComponent::getWaveValue(float &outLeft, float &outRight) {
 
 void MainComponent::updateWaveParams() {
     // get values from sliders and that
-    curWaveAngle = fmod(curWaveAngle, 2.f*(float)M_PI); // make sure angle stays within range 0 - 2*PI
-    float waveFrequency = (float)freqSlider.getValue(); // Hz
-    float wavePeriod = (float)curSampleRate / waveFrequency; // in samples
-    waveAngleDelta = 2.f*(float)M_PI / wavePeriod;
-    waveNoteLength = (float)noteLengthSlider.getValue()/100.f;
+    curWaveAngle = fmod(curWaveAngle, 2.0*M_PI); // make sure angle stays within range 0 - 2*PI
+    
+    double wavePeriod = curSampleRate / sineFrequency.getValue(); // in samples
+    waveAngleDelta = 2.0*M_PI / wavePeriod;
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
@@ -315,16 +306,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     
     if(loading) return;
     
-    // redraw the beat count
-    juce::MessageManager::callAsync ([this] { curBeatLabel.setText(juce::String((double)roundBeat/(std::pow(10, precision))), juce::dontSendNotification); curBeatLabel.repaint(); });
-    
-    
     // get buffers
     float* leftBuffer = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
     float* rightBuffer = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
         
     // BEAT/SAMPLE CALCULATIONS
-    double beatFrequency = bpmSlider.getValue()/60.0; // Hz (beats/second)
+    double beatFrequency = bpm.getValue()/60.0; // Hz (beats/second)
     samplesPerBeat = curSampleRate / beatFrequency; // samples/beat
     beatsPerSample = 1.0 / samplesPerBeat; // i.e. delta beat added for each sample
     masterVolume = (float)masterVolumeSlider.getValue();
@@ -369,7 +356,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // samples
         for(int i = 0; i < samples.size(); i++) {
             Sample *sample = samples.at(i);
-            sample->updateParams(bpmSlider.getValue(), curSampleRate, precision);
+            sample->updateParams(bpm.getValue(), curSampleRate, precision);
             sample->getValue(outLeft, outRight, roundBeat, prevBeat);
         }
         
@@ -413,15 +400,16 @@ void MainComponent::paint (juce::Graphics& g)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
      
     int width = getWidth();
-    int avaliableHeight = getHeight() - 150;
-    int samplesHeight = avaliableHeight/2 - 25;
-    int modifiersHeight = avaliableHeight/2 - 25;
+    
+    int avaliableHeight = getHeight() - controlsHeight;
+    int samplesHeight = avaliableHeight/2 - viewsMargin;
+    int modifiersHeight = avaliableHeight/2 - viewsMargin;
     
     if(samplesHeight >= 20) {
         g.setColour(juce::Colour(30, 30, 30));
-        g.fillRect(0, 150, width, samplesHeight); // fill samples area
+        g.fillRect(0, controlsHeight, width, samplesHeight); // fill samples area
         g.setColour(juce::Colour(0, 0, 0));
-        g.drawRect(0, 150, width, samplesHeight);
+        g.drawRect(0, controlsHeight, width, samplesHeight);
         if(samples.size() == 0) {
             g.setFont(20);
             g.drawText("< Samples >", 0, 151, width, samplesHeight-1, juce::Justification::centred);
@@ -433,15 +421,15 @@ void MainComponent::paint (juce::Graphics& g)
     
     if(modifiersHeight >= 20) {
         g.setColour(juce::Colour(30, 30, 30));
-        g.fillRect(0, 150+samplesHeight+25, width, modifiersHeight); // fill modifiers area
+        g.fillRect(0, controlsHeight+samplesHeight+viewsMargin, width, modifiersHeight); // fill modifiers area
         g.setColour(juce::Colour(0, 0, 0));
-        g.drawRect(0, 150+samplesHeight+25, width, modifiersHeight);
+        g.drawRect(0, controlsHeight+samplesHeight+viewsMargin, width, modifiersHeight);
         if(modifiers.size() == 0) {
             g.setFont(20);
-            g.drawText("< Modifiers >", 0, 150+samplesHeight+26, width, modifiersHeight - 1, juce::Justification::centred);
+            g.drawText("< Modifiers >", 0, controlsHeight+samplesHeight+viewsMargin+1, width, modifiersHeight - 1, juce::Justification::centred);
 
             g.setColour(juce::Colour(255, 255, 255));
-            g.drawText("< Modifiers >", 0, 150+samplesHeight+25, width, modifiersHeight, juce::Justification::centred);
+            g.drawText("< Modifiers >", 0, controlsHeight+samplesHeight+viewsMargin, width, modifiersHeight, juce::Justification::centred);
         }
     }
 
@@ -458,49 +446,53 @@ void MainComponent::resized()
     // == top parameters ==
     // inhabits y: 0-125
     
-    bpmLabel.setBounds(10, 10, 100, 20);
-    bpmSlider.setBounds(10, 30, 500, 20);
-
-    masterVolumeLabel.setBounds(600, 10, 50, 40);
-    masterVolumeSlider.setBounds(600, 45, 50, 85);
+    masterVolumeLabel.setBounds(20, 18, 45, 30);
+    //masterVolumeLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0,0,0));
+    masterVolumeLabel.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 11.f, juce::Font::plain));
+    masterVolumeSlider.setBounds(20, 20, 75, 75);
     
-    freqLabel.setBounds(10, 50, 100, 20);
-    freqSlider.setBounds(10, 70, 250, 20);
+    int controlswidth = std::min(700, width-110); // max width of controls
     
-    noteLengthLabel.setBounds(275, 50, 100, 20);
-    noteLengthSlider.setBounds(275, 70, 250, 20);
+    bpm.setBounds(120, 10, controlswidth, 40);
+    sineFrequency.setBounds(120, 50, controlswidth/2 - 10, 40);
+    sineNoteLength.setBounds(120 + controlswidth/2 + 10, 50, controlswidth/2 - 10, 40);
     
-    curBeatLabel.setBounds(10, 95, 100, 20);
-    curBeatLabel.setTooltip("Current beat count");
-        
-    sampleAddButton.setBounds(10, 120, 60, 20);
-    resetBeatButton.setBounds(80, 120, 60, 20);
-    saveStateButton.setBounds(150, 120, 60, 20);
-    loadStateButton.setBounds(220, 120, 60, 20);
-    modifierAddButton.setBounds(290, 120, 60, 20);
-    newProjectButton.setBounds(360, 120, 60, 20);
+    curBeatLabel.setBounds(0, 0, 100, 20);
+    curBeatLabel.setEditable(true);
+    curBeatLabel.onEditorShow = [this] {
+        curBeat = -0.1f; prevBeat = -0.2f;
+        // terrible & hacky way to reset beat if the counter is clicked
+    };
+    
+    sampleAddButton.setBounds(10, 100, 60, 20);
+    modifierAddButton.setBounds(80, 100, 60, 20);
+    resetBeatButton.setBounds(290, 100, 60, 20);
+    
+    saveStateButton.setBounds(150, 100, 60, 20);
+    loadStateButton.setBounds(220, 100, 60, 20);
+    newProjectButton.setBounds(360, 100, 60, 20);
     
     int avaliableHeight = getHeight() - 150;
     
+    // some nasty code here but it does work
     
     // == samples ==
     
     int samplesHeight = avaliableHeight/2 - 25;
     
-    samplesViewport.setBounds(0, 150, width, samplesHeight); 
+    samplesViewport.setBounds(0, controlsHeight, width, samplesHeight);
     
     int relativeY = 0;
-    int margin = 3; // (bottom)
 
     for(int i = 0; i < samples.size(); i++) {
         if(samples[i]->isCollapsed()) {
             int height = 40;
-            samples[i]->setBounds(margin, relativeY + margin, width - 2*margin, height - 2*margin);
+            samples[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin, height - 2*componentMargin);
             relativeY+=height;
             
         } else {
             int height = 140;
-            samples[i]->setBounds(margin, relativeY + margin, width - 2*margin, height- 2*margin);
+            samples[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin, height- 2*componentMargin);
             relativeY+=height;
         }
     }
@@ -509,15 +501,15 @@ void MainComponent::resized()
     
     // == modifiers ==
     
-    int modifiersHeight = avaliableHeight/2 - 25;
+    int modifiersHeight = avaliableHeight/2 - viewsMargin;
     
-    modifiersViewport.setBounds(0, 150 + samplesHeight + 25, width, modifiersHeight);
+    modifiersViewport.setBounds(0, controlsHeight + samplesHeight + viewsMargin, width, modifiersHeight);
     
     relativeY = 0;
     
     for(int i = 0; i < modifiers.size(); i++) {
         int height = 100;
-        modifiers[i]->setBounds(margin, relativeY + margin, width - 2*margin, height - 2*margin);
+        modifiers[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin, height - 2*componentMargin);
         relativeY+=height;
     }
 
@@ -525,3 +517,7 @@ void MainComponent::resized()
     
 }
 
+void MainComponent::timerCallback() {
+    curBeatLabel.setText(juce::String((double)roundBeat/(std::pow(10, precision)), 1), juce::dontSendNotification);
+    curBeatLabel.repaint();
+}

@@ -69,6 +69,7 @@ private:
     bool isValidSample(int index);
     bool isValidModifier(int index);
     void timerCallback() override;
+    void mouseDown(const juce::MouseEvent &event) override;
     
     double parseEquation(std::string input);
     std::string toolTip();

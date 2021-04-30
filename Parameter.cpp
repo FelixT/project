@@ -3,7 +3,11 @@
 Parameter::Parameter(std::string label, std::string tooltip, double min, double max, double step, double value)
 : label(label), tooltip(tooltip), min(min), max(max), step(step), value(value) {
     
-    componentLabel.setJustificationType(juce::Justification::right);
+    componentLabel.setJustificationType(juce::Justification::left);
+    componentLabel.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 14.f, juce::Font::plain));
+    componentSlider.setColour(juce::Slider::ColourIds::textBoxBackgroundColourId, juce::Colour(4, 40, 40));
+    componentSlider.setColour(juce::Slider::ColourIds::textBoxOutlineColourId, juce::Colour(110, 110, 110));
+    componentSlider.setColour(juce::Slider::ColourIds::textBoxTextColourId, juce::Colour(225, 225, 225));
     
     updateAll();
     
@@ -86,17 +90,19 @@ void Parameter::updateAll() {
     componentSlider.setRange(min, max, step);
     componentSlider.setValue(value, juce::dontSendNotification);
     componentSlider.setTooltip(tooltip);
-    componentLabel.setText(label, juce::dontSendNotification);
+    componentLabel.setText(label + ":", juce::dontSendNotification);
 }
 
 void Parameter::resized() {
     int width = getLocalBounds().getWidth();
-    int height = 40;
+    int height = 34;
     
-    componentLabel.setBounds(0, 0, width, 20);
-    componentSlider.setBounds(0, 20, width, 20);
+    componentLabel.setBounds(0, 0, width, 14);
+    componentSlider.setBounds(0, 14, width, 20);
     
-    componentSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, width/5, 20);
+    int boxWidth = width/5;
+    if(boxWidth > 100) boxWidth = 100;
+    componentSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, boxWidth, 17);
 }
 
 bool Parameter::isActive() {

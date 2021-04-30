@@ -25,7 +25,15 @@ void WaveformView::setSource(juce::InputSource *source) {
 }
 
 void WaveformView::mouseDown(const juce::MouseEvent &event) {
-    cropped = !cropped;
+    if(event.mods.isLeftButtonDown()) {
+        cropped = !cropped;
+    } else if(event.mods.isRightButtonDown()) {
+        juce::PopupMenu m;
+        m.addSectionHeader("Zoom");
+        m.addItem("Full", true, !cropped, ([this]{ cropped = false; }));
+        m.addItem("Cropped", true, cropped, ([this]{ cropped = true; }));
+        m.show();
+    }
 }
 
 void WaveformView::timerCallback() {
@@ -37,9 +45,9 @@ void WaveformView::paint(juce::Graphics& g) {
     float height = (float)getLocalBounds().getHeight();
     
     // background
-    g.setColour(juce::Colour(30, 30, 30));
+    g.setColour(juce::Colour(25, 25, 25));
     g.fillRect(0.f, 0.f, width, height);
-    g.setColour(juce::Colour(255, 255, 255));
+    g.setColour(juce::Colour(225, 225, 225));
     g.drawRect(0.f, 0.f, width, height);
 
     if(*sampleLength == 0) {
@@ -57,7 +65,7 @@ void WaveformView::paint(juce::Graphics& g) {
         
         double drawStart = 0.0;
         double drawEnd = lengthSeconds;
-        float playheadPos = width * playProportion - 3.f;
+        float playheadPos = width * playProportion - 2.f;
         
         if(cropped) {
             drawStart = lengthSeconds*(double)startProportion;
@@ -65,7 +73,7 @@ void WaveformView::paint(juce::Graphics& g) {
         }
         
         // waveform
-        g.setColour(juce::Colour(255, 255, 255));
+        g.setColour(juce::Colour(225, 225, 225));
         
         // TODO: only draw wave when its changed
         waveThumbnail.drawChannels(g, getLocalBounds(), drawStart, drawEnd, (float)*volume);
@@ -73,17 +81,17 @@ void WaveformView::paint(juce::Graphics& g) {
         // play marker
         if(playheadPos > 0 && playheadPos < width) {
             g.setColour(juce::Colour(255, 0, 0));
-            g.fillRect(playheadPos, 0.f, 3.f, height);
+            g.fillRect(playheadPos, 0.f, 2.f, height);
         }
         
         if(!cropped) {
             // crop left marker
-            g.setColour(juce::Colour(120, 120, 255));
-            g.fillRect(width * startProportion, 0.f, 3.f, height);
+            g.setColour(juce::Colour(20, 40, 255));
+            g.fillRect(width * startProportion, 0.f, 2.f, height);
             
             // crop right marker
-            g.setColour(juce::Colour(120, 120, 255));
-            g.fillRect(width * endProportion-3.f, 0.f, 3.f, height);
+            g.setColour(juce::Colour(20, 40, 255));
+            g.fillRect(width * endProportion-2.f, 0.f, 2.f, height);
         }
         
     }

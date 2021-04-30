@@ -8,6 +8,7 @@
 
 #include "Sample.h"
 #include "Modifier.h"
+#include "Parameter.h"
 
 
 //==============================================================================
@@ -15,7 +16,7 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainComponent  : public juce::AudioAppComponent
+class MainComponent  : public juce::AudioAppComponent, private juce::Timer
 {
 public:
     //==============================================================================
@@ -44,10 +45,15 @@ private:
     void updateWaveParams();
     void addSample();
     void addModifier();
+    void timerCallback() override;
 
     //==============================================================================
     
     int precision = 2;  // number of decimal places of beats to use in calculations
+    int viewsMargin = 20; // margin between samples and modifiers
+    int componentMargin = 4; // margins around individual modifiers/samples
+    int controlsHeight = 130; // height of main controls at the top
+    
     float waveVolume = 0.5f; // 0 - 1
     float masterVolume = 1.0f;
     
@@ -56,11 +62,10 @@ private:
     double curSampleRate = 0.0;
     double curBeat = 0.0;
     
-    float curWaveAngle = 0.f;
+    double curWaveAngle = 0.0;
+    double waveAngleDelta = 0.0;
     bool waveEnabled = true;
-    float waveAngleDelta = 0.f;
-    float waveNoteLength = 0.f;
-    
+        
     double samplesPerBeat = 0.f;
     double beatsPerSample = 0.f; // equal to 1/samplesPerBeat
     
@@ -70,16 +75,13 @@ private:
     long roundBeat = 0;
     long prevBeat = 0;
     
+    
     juce::TooltipWindow tooltipWindow;
     
-    juce::Slider freqSlider;
-    juce::Label freqLabel;
-    
-    juce::Slider bpmSlider;
-    juce::Label bpmLabel;
-    
-    juce::Slider noteLengthSlider;
-    juce::Label noteLengthLabel;
+    // params
+    Parameter bpm;
+    Parameter sineFrequency;
+    Parameter sineNoteLength;
     
     juce::Slider masterVolumeSlider;
     juce::Label masterVolumeLabel;

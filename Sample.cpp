@@ -17,7 +17,7 @@ delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0,
     sampleLabel.setFont(juce::Font(16.f, juce::Font::bold));
     
     // collapse
-    sampleCollapseButton.setButtonText("+-");
+    sampleCollapseButton.setButtonText("-");
     sampleCollapseButton.onClick = [this] {
         collapsed = !collapsed;
         getParentComponent()->getParentComponent()->getParentComponent()->getParentComponent()->resized(); // i hate this but it works...
@@ -33,13 +33,13 @@ delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0,
     sampleVolumeSlider.setRange(0, 100, 1);
     sampleVolumeSlider.setValue(volume*100.0);
     sampleVolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
-    sampleVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 30);
+    sampleVolumeSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 50, 24);
     sampleVolumeSlider.onValueChange = [this] { volume = sampleVolumeSlider.getValue() / 100.0; };
     sampleVolumeSlider.setTooltip("Change the sample's playback volume");
     
     // mute & solo
     sampleSoloButton.setButtonText("S");
-    sampleSoloButton.setTooltip("Solo sample");
+    sampleSoloButton.setTooltip("Solo sample [not yet implemented]");
     sampleSoloButton.onClick = [this] {
         isSoloed = !isSoloed;
     };
@@ -86,7 +86,8 @@ std::vector<Parameter*> Sample::getParams() {
 }
 
 void Sample::mouseDown(const juce::MouseEvent &event) {
-    if(event.getNumberOfClicks() == 2) {
+    std::cout << event.getNumberOfClicks() << std::endl;
+    if((event.getNumberOfClicks() % 2) == 0 && event.mods.isLeftButtonDown()) {
         collapsed = !collapsed;
         getParentComponent()->getParentComponent()->getParentComponent()->getParentComponent()->resized(); // i hate this but it works...
     }
@@ -135,10 +136,10 @@ void Sample::paint (juce::Graphics& g)
         slidersChanged = false;
     }
         
-    if(isMuted) sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkred);
+    if(isMuted) sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colour(165, 40, 0));
     else sampleMuteButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkslategrey);
     
-    if(isSoloed) sampleSoloButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::blue);
+    if(isSoloed) sampleSoloButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colour(0, 40, 165));
     else sampleSoloButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::darkslategrey);
     
     if(collapsed) {
@@ -153,39 +154,42 @@ void Sample::paint (juce::Graphics& g)
 }
 
 void Sample::resized() {
+    int width = getWidth();
+    int height = getHeight();
+    
     // label
-    sampleLabel.setBounds(120, 5, 200, 20);
-    
-    // collapse
-    sampleCollapseButton.setBounds(20, 5, 20, 20);
-    
+    sampleLabel.setBounds(50, 4, 150, 20);
+
     // browse
-    sampleBrowseButton.setBounds(50, 5, 60, 40);
+    sampleBrowseButton.setBounds(50, 25, 150, 20);
     
     // bpm
-    bpm.setBounds(120, 10, 475, 40);
+    bpm.setBounds(210, 10, 425, 40);
     
     // crop
-    cropStart.setBounds(20, 50, 275, 40);
-    cropEnd.setBounds(320, 50, 275, 40);
+    cropStart.setBounds(50, 50, 275, 40);
+    cropEnd.setBounds(350, 50, 275, 40);
         
     // interval
-    interval.setBounds(20, 90, 275, 40);
+    interval.setBounds(50, 90, 275, 40);
     
     // delay
-    delay.setBounds(320, 90, 275, 40);
+    delay.setBounds(350, 90, 275, 40);
     
     // volume
-    sampleVolumeSlider.setBounds(610, 30, 50, 90);
-    
-    // mute & solo
-    sampleMuteButton.setBounds(610, 5, 25, 25);
-    sampleSoloButton.setBounds(640, 5, 25, 25);
+    sampleVolumeSlider.setBounds(640, 4, 50, height-8);
+        
+    // collapse
+    sampleCollapseButton.setBounds(0, 0, 18, 18);
     
     // waveform
-    int waveWidth = getLocalBounds().getWidth() - 675 - 15;
+    int waveWidth = getLocalBounds().getWidth() - 705 - 20 - 25;
     if(waveWidth > 0)
-        sampleWaveform->setBounds(675, 35, waveWidth, 75);
+        sampleWaveform->setBounds(705, 35, waveWidth, 85);
+    
+    // mute & solo
+    sampleMuteButton.setBounds(705, 4, waveWidth/2-5, 24);
+    sampleSoloButton.setBounds(705+waveWidth/2+5, 4, waveWidth/2-5, 24);
 }
 
 bool Sample::loadSample(juce::File file) {

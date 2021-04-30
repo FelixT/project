@@ -24,7 +24,7 @@ cycleLength("Cycle length (beats)", "How long the rhythm cycle should be (in bea
 pulseDuration("Pulse duration (beats)", "How long each 'pulse' ('hit'/'break') should last (in beats)", 0.25, 10.0, 0.25, 0.5),
 euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will be played) per cycle", 1.0, 32.0, 1.0, 4.0)
 {
-    setOpaque(true); // ??
+    //setOpaque(true); // ??
     
     startTimer(500); // every half second
     
@@ -64,6 +64,7 @@ euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will 
     modifierBack.setTooltip("Change pattern position");
     
     modifierPosition.setJustificationType(juce::Justification::centred);
+    modifierPosition.setTooltip("The current position in the cycle, starting on 0");
     
     modifierForward.setButtonText(">");
     modifierForward.onClick = [this] { euclideanPosition+=1; euclideanPosition%=modifierEuclideanRhythm.size(); };
@@ -419,6 +420,9 @@ void Modifier::showEquationControls() {
     modifierEquationLabel.setVisible(true);
         
     modifierPosition.setVisible(true);
+    
+    modifierBack.setVisible(true);
+    modifierForward.setVisible(true);
 }
 
 void Modifier::paint(juce::Graphics& g) {
@@ -645,19 +649,14 @@ void Modifier::tickRandom(long roundedBeat, long prevBeat) {
             int n = r.nextInt(iRange + 1) + iMin;
             double newVal = (double)n*randomStep.getValue();
             
-            if(state == STATE_SAMPLE && isValidSample(selected)) {
+            if((state == STATE_SAMPLE && isValidSample(selected))
+            || (state == STATE_MODIFIER && isValidModifier(selected))) {
+                
                 if(isValidParam(parameterIndex)) {
                     params.at(parameterIndex)->setValue(newVal);
                     juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->update(); });
                 }
-            } else if(isValidModifier(selected)) {
-                if(isValidParam(parameterIndex)) {
-                    params.at(parameterIndex)->setValue(newVal);
-                    juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->update(); });
-                }
-
-                //if(parameter == PARAMETER_INTERVAL)
-                //    modifier->setInterval(newVal);
+                
             }
         } // otherwise user has entered parameters wrong
     }
@@ -674,12 +673,19 @@ void Modifier::tickEquation(long roundedBeat, long prevBeat) {
            // valid sample selected
             
             juce::MessageManager::callAsync ([this] { repaint(); });
-            Sample *sample = samples->at(selected);
             
             double newVal = parseEquation(modifierEquation.getText().toStdString());
             std::cout << newVal << std::endl;
             
-            if(newVal < 0) return;
+            if((state == STATE_SAMPLE && isValidSample(selected))
+            || (state == STATE_MODIFIER && isValidModifier(selected))) {
+                
+                if(isValidParam(parameterIndex)) {
+                    params.at(parameterIndex)->setValue(newVal);
+                    juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->update(); });
+                }
+                
+            }
             
             /*if(parameter == PARAMETER_INTERVAL)
                 sample->setInterval(newVal);
@@ -922,4 +928,17 @@ std::string Modifier::toolTip() {
 
 void Modifier::timerCallback() {
     refreshDropdownItems();
+}
+
+void Modifier::mouseDown(const juce::MouseEvent& event) {
+    if(event.mods.isRightButtonDown()) {
+        // show right click menu
+        
+        juce::PopupMenu m;
+        m.addSectionHeader("Mode");
+        m.addItem("Random", true, (mode == MODE_RANDOM), ([this]{mode = MODE_RANDOM; slidersChanged = true; }));
+        m.addItem("Euclidean", true, (mode == MODE_EUCLIDEAN), ([this]{mode = MODE_EUCLIDEAN; updateEuclidean(); slidersChanged = true; }));
+        m.addItem("Equation", true, (mode == MODE_EQUATION), ([this]{mode = MODE_EQUATION; slidersChanged = true; }));
+        m.show();
+    }
 }
