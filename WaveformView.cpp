@@ -11,6 +11,12 @@ WaveformView::WaveformView(double *inSampleLength, double *inCurPos, double *inV
     formatManager = inFormatManager;
     
     setOpaque(true);
+        
+    startTimer(40);
+    
+}
+
+WaveformView::~WaveformView() {
     
 }
 
@@ -20,6 +26,10 @@ void WaveformView::setSource(juce::InputSource *source) {
 
 void WaveformView::mouseDown(const juce::MouseEvent &event) {
     cropped = !cropped;
+}
+
+void WaveformView::timerCallback() {
+    repaint();
 }
 
 void WaveformView::paint(juce::Graphics& g) {

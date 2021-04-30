@@ -26,6 +26,8 @@ euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will 
 {
     setOpaque(true); // ??
     
+    startTimer(500); // every half second
+    
     samples = samplesPointer;
     modifiers = modifiersPointer;
     
@@ -35,11 +37,9 @@ euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will 
     modifierSelect.onChange = [this] { updateSelected(); };
     
     // parameter
-    modifierParameter.addItem("Interval", 1);
-    modifierParameter.addItem("Delay", 2);
-    modifierParameter.addItem("BPM", 3);
+    populateParameters();
     modifierParameterLabel.setText("Parameter to modify:", juce::dontSendNotification);
-    modifierParameter.onChange = [this] { parameter = (enum modifierParameter)modifierParameter.getSelectedId(); };
+    modifierParameter.onChange = [this] { parameterIndex = modifierParameter.getSelectedItemIndex(); parameterChanged(); };
    
     // presets
     populatePresets();
@@ -74,10 +74,6 @@ euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will 
     modifierEquation.onTextChange = [this] { equation = modifierEquation.getText().toStdString(); };
     modifierEquationLabel.setText("Equation", juce::dontSendNotification);
     
-    modifierRefresh.setButtonText("Refresh");
-    modifierRefresh.onClick = [this] { refreshDropdownItems(); };
-    modifierRefresh.setTooltip("Refresh the dropdown items");
-    
     addChildComponent(modifierEquation);
     addChildComponent(modifierEquationLabel);
     
@@ -89,7 +85,6 @@ euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will 
     addChildComponent(modifierPosition);
     
     addAndMakeVisible(modifierSelect);
-    addAndMakeVisible(modifierRefresh);
     addAndMakeVisible(modifierParameter);
     addAndMakeVisible(modifierChangeMode);
     addAndMakeVisible(modifierParameterLabel);
@@ -108,6 +103,72 @@ euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will 
 }
 
 Modifier::~Modifier() {
+    
+}
+
+std::vector<Parameter*> Modifier::getParams() {
+    std::vector<Parameter*> params;
+    params.push_back(&randomInterval);
+    params.push_back(&randomMin);
+    params.push_back(&randomMax);
+    params.push_back(&randomStep);
+    
+    params.push_back(&cycleLength);
+    params.push_back(&pulseDuration);
+    params.push_back(&euclideanNumHits);
+    return params;
+}
+
+void Modifier::parameterChanged() {
+
+    if(isValidParam(parameterIndex)) {
+        double min = params.at(parameterIndex)->getMin();
+        double max = params.at(parameterIndex)->getMax();
+        double step = params.at(parameterIndex)->getStep();
+        
+        randomMin.setMin(min);
+        randomMin.setMax(max);
+        randomMin.setStep(step);
+        
+        randomMax.setMin(min);
+        randomMax.setMax(max);
+        randomMax.setStep(step);
+        
+        randomStep.setMin(step);
+        
+        juce::MessageManager::callAsync ([this] { randomMin.updateAll(); randomMax.updateAll(); randomStep.updateAll(); });
+    }
+}
+
+void Modifier::populateParameters() {
+    
+    std::cout << "populating params" << std::endl;
+    
+    int selectedID = modifierParameter.getSelectedId();
+    
+    modifierParameter.clear();
+    
+    if(state == STATE_SAMPLE && isValidSample(selected)) {
+        Sample *sample = samples->at(selected);
+        
+        params = sample->getParams();
+        
+        for(int i = 0; i < params.size(); i++) {
+            modifierParameter.addItem(params.at(i)->getLabel(), i+1);
+        }
+    } else if(state == STATE_MODIFIER && isValidModifier(selected)) {
+        
+        Modifier *modifier = modifiers->at(selected);
+        
+        params = modifier->getParams();
+        
+        for(int i = 0; i < params.size(); i++) {
+            modifierParameter.addItem(params.at(i)->getLabel(), i+1);
+        }
+    }
+    
+    if(selectedID <= modifierParameter.getNumItems())
+        modifierParameter.setSelectedId(selectedID, juce::dontSendNotification);
     
 }
 
@@ -254,7 +315,8 @@ void Modifier::refreshDropdownItems() {
         //std::cout << i + samples->size() + 2 << std::endl;
     }
     
-    modifierSelect.setSelectedId(selectedID, juce::dontSendNotification);
+    if(selectedID <= modifierParameter.getNumItems())
+        modifierSelect.setSelectedId(selectedID, juce::dontSendNotification);
 }
 
 
@@ -360,21 +422,6 @@ void Modifier::showEquationControls() {
 }
 
 void Modifier::paint(juce::Graphics& g) {
-        
-    // TODO: implement slidersChanged
-    
-    if(slidersChanged) {
-        // make sliders reflect true values
-        randomInterval.update();
-        randomMin.update();
-        randomMax.update();
-        randomStep.update();
-        cycleLength.update();
-        pulseDuration.update();
-        euclideanNumHits.update();
-        
-        slidersChanged = false;
-    }
     
     if(dropdownChanged) {
         refreshDropdownItems();
@@ -387,7 +434,24 @@ void Modifier::paint(juce::Graphics& g) {
         if(state == STATE_MODIFIER)
             modifierSelect.setSelectedId(selected+(int)samples->size()+2, juce::dontSendNotification);
         
+        populateParameters();
+        
         dropdownChanged = false;
+    }
+    
+    if(slidersChanged) {
+        // make sliders reflect true values
+        randomInterval.update();
+        randomMin.update();
+        randomMax.update();
+        randomStep.update();
+        cycleLength.update();
+        pulseDuration.update();
+        euclideanNumHits.update();
+        
+        modifierParameter.setSelectedItemIndex(parameterIndex, juce::dontSendNotification);
+        
+        slidersChanged = false;
     }
     
     // draw background
@@ -396,9 +460,7 @@ void Modifier::paint(juce::Graphics& g) {
     
     // update position
     modifierPosition.setText(std::to_string(euclideanPosition), juce::dontSendNotification);
-    
-    modifierParameter.setSelectedId(parameter, juce::dontSendNotification);
-    
+        
     hideAllControls();
     if(mode == MODE_RANDOM) {
         showRandomControls();
@@ -414,8 +476,6 @@ void Modifier::paint(juce::Graphics& g) {
 void Modifier::resized() {
     modifierSelectLabel.setBounds(15, 0, 120, 20);
     modifierSelect.setBounds(15, 20, 120, 20);
-    
-    modifierRefresh.setBounds(135, 20, 40, 20);
     
     modifierParameterLabel.setBounds(15, 40, 120, 20);
     modifierParameter.setBounds(15, 60, 120, 20);
@@ -483,8 +543,11 @@ void Modifier::setState(int index) {
 }
 
 void Modifier::setParameter(int index) {
-    parameter = (enum modifierParameter)index;
+    populateParameters();
+    parameterIndex = index;
     slidersChanged = true;
+    dropdownChanged = true;
+    parameterChanged();
 }
 
 void Modifier::setEquation(std::string eqn) {
@@ -550,6 +613,18 @@ void Modifier::tickEuclidean(long roundedBeat, long prevBeat) {
     }
 }
 
+bool Modifier::isValidParam(int index) {
+    return (index >= 0 && index < params.size());
+}
+
+bool Modifier::isValidSample(int index) {
+    return (index >= 0 && index < samples->size());
+}
+
+bool Modifier::isValidModifier(int index) {
+    return (index >= 0 && index < modifiers->size());
+}
+
 void Modifier::tickRandom(long roundedBeat, long prevBeat) {
     if(roundedInterval == 0) return; // something br0ke
     if((roundedBeat > prevBeat) && ((roundedBeat % roundedInterval) == 0)) {
@@ -570,20 +645,19 @@ void Modifier::tickRandom(long roundedBeat, long prevBeat) {
             int n = r.nextInt(iRange + 1) + iMin;
             double newVal = (double)n*randomStep.getValue();
             
-            if(state == STATE_SAMPLE) {
-                Sample *sample = samples->at(selected);
+            if(state == STATE_SAMPLE && isValidSample(selected)) {
+                if(isValidParam(parameterIndex)) {
+                    params.at(parameterIndex)->setValue(newVal);
+                    juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->update(); });
+                }
+            } else if(isValidModifier(selected)) {
+                if(isValidParam(parameterIndex)) {
+                    params.at(parameterIndex)->setValue(newVal);
+                    juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->update(); });
+                }
 
-                if(parameter == PARAMETER_INTERVAL)
-                    sample->setInterval(newVal);
-                if(parameter == PARAMETER_DELAY)
-                    sample->setDelay(newVal);
-                if(parameter == PARAMETER_BPM)
-                    sample->setBpm(newVal*10);
-            } else {
-                Modifier *modifier = modifiers->at(selected);
-
-                if(parameter == PARAMETER_INTERVAL)
-                    modifier->setInterval(newVal);
+                //if(parameter == PARAMETER_INTERVAL)
+                //    modifier->setInterval(newVal);
             }
         } // otherwise user has entered parameters wrong
     }
@@ -607,12 +681,12 @@ void Modifier::tickEquation(long roundedBeat, long prevBeat) {
             
             if(newVal < 0) return;
             
-            if(parameter == PARAMETER_INTERVAL)
+            /*if(parameter == PARAMETER_INTERVAL)
                 sample->setInterval(newVal);
             if(parameter == PARAMETER_DELAY)
                 sample->setDelay(newVal);
             if(parameter == PARAMETER_BPM)
-                sample->setBpm(newVal);
+                sample->setBpm(newVal);*/
         }
     }
 }
@@ -653,6 +727,9 @@ void Modifier::updateSelected() {
         selected = (int)modifierSelect.getSelectedId() - samples->size() - 2;
         state = STATE_MODIFIER;
     }
+    
+    populateParameters();
+    parameterChanged();
 
 }
 
@@ -673,7 +750,6 @@ void Modifier::updateParams(int precision) {
             
             // todo: check if it matches a preset before doing this
             juce::MessageManager::callAsync ([this] { modifierPresetMenu.setSelectedId(0, juce::dontSendNotification); });
-            //modifierPresetMenu.setSelectedId(0, juce::dontSendNotification);
             // then these are all auto set to false
         }
     }
@@ -684,8 +760,8 @@ std::string Modifier::toString() {
     output += "Modifier <name> {\n";
     output += "mode " + std::to_string(mode) + "\n";
     output += "state " + std::to_string(state) + "\n";
-    output += "parameter " + std::to_string(parameter) + "\n";
     output += "selected " + std::to_string(selected) + "\n";
+    output += "parameter " + std::to_string(parameterIndex) + "\n";
     output += "interval " + std::to_string(randomInterval.getValue()) + "\n";
     output += "min " + std::to_string(randomMin.getValue()) + "\n";
     output += "max " + std::to_string(randomMax.getValue()) + "\n";
@@ -842,4 +918,8 @@ std::string Modifier::toolTip() {
     }
     
     return str;
+}
+
+void Modifier::timerCallback() {
+    refreshDropdownItems();
 }

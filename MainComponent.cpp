@@ -89,6 +89,7 @@ MainComponent::~MainComponent()
     // This shuts down the audio device and clears the audio source.
     shutdownAudio();
     
+    resetSamples(); resetModifiers();
 }
 
 std::string MainComponent::getState() {
@@ -223,8 +224,8 @@ void MainComponent::loadState() {
                         
                         if(first == "mode") modifiers.back()->setMode(std::stoi(second));
                         if(first == "state") modifiers.back()->setState(std::stoi(second));
-                        if(first == "parameter") modifiers.back()->setParameter(std::stoi(second));
                         if(first == "selected") modifiers.back()->setSelected(std::stoi(second));
+                        if(first == "parameter") modifiers.back()->setParameter(std::stoi(second));
                         if(first == "interval") modifiers.back()->setInterval(std::stod(second));
                         if(first == "min") modifiers.back()->setMin(std::stod(second));
                         if(first == "max") modifiers.back()->setMax(std::stod(second));

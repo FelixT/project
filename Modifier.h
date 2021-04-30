@@ -11,7 +11,7 @@
 
 #include "Sample.h"
 
-class Modifier : public juce::Component {
+class Modifier : public juce::Component, private juce::Timer {
     
 public:
     Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer);
@@ -35,6 +35,7 @@ public:
     void setCycleLength(double len);
     void setPulseDuration(double len);
     void setEuclideanHits(double num);
+    std::vector<Parameter*> getParams();
     
     void updateEuclidean();
     
@@ -59,19 +60,18 @@ private:
     void drawEuclideanPattern(juce::Graphics& g);
     void showEquationControls();
     void changeMode();
+    void populateParameters();
+    void parameterChanged();
     void populatePresets();
     void selectPreset();
     void updateSelected();
+    bool isValidParam(int index);
+    bool isValidSample(int index);
+    bool isValidModifier(int index);
+    void timerCallback() override;
     
     double parseEquation(std::string input);
     std::string toolTip();
-    
-    enum modifierParameter {
-        PARAMETER_IDLE,
-        PARAMETER_INTERVAL,
-        PARAMETER_DELAY,
-        PARAMETER_BPM
-    };
     
     enum modifierState {
         STATE_IDLE,
@@ -99,16 +99,13 @@ private:
     juce::TextButton modifierHelp;
     juce::TextButton modifierForward;
     juce::TextButton modifierBack;
-    
-    juce::TextButton modifierRefresh;
-    
+        
     std::string equation = "X";
     
     juce::Label modifierPosition;
     
     int selected = -1; // index of selected sample/modifier (depending on state)
     
-    enum modifierParameter parameter = PARAMETER_IDLE;
     modifierState state = STATE_IDLE;
     
     
@@ -135,6 +132,9 @@ private:
     long roundedPulseDuration;
     
     juce::Colour background = juce::Colour(100, 100, 100);
+    
+    std::vector<Parameter*> params;
+    int parameterIndex = -1;
     
 };
 

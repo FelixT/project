@@ -13,13 +13,17 @@ public:
     void setStep(double step);
     void setValue(double value);
     void setTooltip(std::string tooltip);
-    bool isChanged(); // whether the user has changed this parameter since we last checked/set it
+    bool isChanged(); // whether this parameter has changed since we last checked
     double getValue();
+    double getMin();
+    double getMax();
+    double getStep();
     void update();
     void updateAll();
     void resized() override;
     bool isActive();
     void setActive(bool v);
+    std::string getLabel();
 private:
     std::string label;
     std::string tooltip;

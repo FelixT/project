@@ -68,7 +68,11 @@ delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0,
 Sample::~Sample() {
     delete sampleReader;
     delete sampleBuffer;
+    delete sampleWaveform;
     formatManager = nullptr;
+    sampleWaveform = nullptr;
+    
+    
 }
 
 std::vector<Parameter*> Sample::getParams() {
@@ -295,7 +299,6 @@ void Sample::updateParams(double trackBpm, double trackSampleRate, int precision
 
 void Sample::updateBuffers(int numSamples) {
     if(slidersChanged) juce::MessageManager::callAsync ([this] { repaint(); });
-    juce::MessageManager::callAsync ([this] { sampleWaveform->repaint(); }); // redraw waveform while we're at it
     
     // get samples buffers
     const juce::AudioSourceChannelInfo sampleFill(sampleBuffer, 0, numSamples);

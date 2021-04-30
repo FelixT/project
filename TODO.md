@@ -25,3 +25,7 @@
 23) Change beat euclidean position to drawn text in paint func?
 24) On change of euclidean parameters, set preset menu to custom
 25) Custom sequencing
+26) Check sample exists every time we .at(id) it in modifiers, give error if not
+27) Recalculate euclidean if params modified by a modifier
+28) Dispose of waveforms when deleting samples
+29) Use timer callbacks for some things e.g. updating dropdown, drawing waveform, curpos etc

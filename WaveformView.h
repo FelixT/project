@@ -4,13 +4,15 @@
 #include <stdio.h>
 #include <JuceHeader.h>
 
-class WaveformView : public juce::Component {
+class WaveformView : public juce::Component, private juce::Timer {
 public:
     WaveformView(double *inSampleLength, double *inCurPos, double *inVolume, double *inStartPos, double *inEndPos, juce::AudioFormatManager *inFormatManager);
+    ~WaveformView();
     void setSource(juce::InputSource *source);
 private:
     void paint (juce::Graphics& g) override;
     void mouseDown(const juce::MouseEvent &event) override;
+    void timerCallback() override;
     
     double *sampleLength;
     double *curPos;
