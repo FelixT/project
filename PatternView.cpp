@@ -42,3 +42,17 @@ void PatternView::paint(juce::Graphics& g) {
 int PatternView::patternWidth() {
     return pattern->size() * 20;
 }
+
+void PatternView::mouseDown(const juce::MouseEvent &event) {
+    if(editable) {
+        // if allowed to modify i.e. if in custom mode
+        
+        // work out which element was clicked on
+        int x = event.getMouseDownX();
+        int component = x/20;
+        
+        // then toggle this and redraw
+        pattern->at(component) = !pattern->at(component);
+        repaint();
+    }
+}

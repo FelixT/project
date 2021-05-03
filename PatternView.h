@@ -12,6 +12,8 @@ public:
 private:
     std::vector<bool> *pattern;
     int *position;
+    void mouseDown(const juce::MouseEvent &event) override;
+    bool editable = true;
 };
 
 #endif

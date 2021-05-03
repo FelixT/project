@@ -52,11 +52,12 @@ public:
 private:
     long pow10(float input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
-    void tickEuclidean(long roundedBeat, long prevBeat);
+    void tickPlayPattern(long roundedBeat, long prevBeat);
     void tickRandom(long roundedBeat, long prevBeat);
     void tickEquation(long roundedBeat, long prevBeat);
     void hideAllControls();
     void showRandomControls();
+    void showCustomControls();
     void showEuclideanControls();
     void showEquationControls();
     void changeMode();
@@ -123,7 +124,8 @@ private:
     enum modifierMode {
         MODE_RANDOM,
         MODE_EUCLIDEAN,
-        MODE_EQUATION
+        MODE_EQUATION,
+        MODE_CUSTOM
     };
     
     modifierMode mode = MODE_RANDOM;

@@ -184,16 +184,12 @@ void Modifier::populateParameters() {
 void Modifier::changeMode() {
     
     if(mode == MODE_RANDOM) {
-        
-        // set mode to MODE_EUCLIDEAN
         mode = MODE_EUCLIDEAN;
         updateEuclidean();
-        
     } else if(mode == MODE_EUCLIDEAN) {
-        
-        // set mode to MODE_RANDOM
+        mode = MODE_CUSTOM;
+    }  else if(mode == MODE_CUSTOM) {
         mode = MODE_EQUATION;
-
     } else if(mode == MODE_EQUATION) {
         mode = MODE_RANDOM;
     }
@@ -383,6 +379,20 @@ void Modifier::showEuclideanControls() {
     patternViewport.setVisible(true);
 }
 
+void Modifier::showCustomControls() {
+    modifierChangeMode.setButtonText("Custom");
+    
+    pulseDuration.setActive(true);
+    cycleLength.setActive(true);
+    
+    modifierPosition.setVisible(true);
+    
+    modifierBack.setVisible(true);
+    modifierForward.setVisible(true);
+    
+    patternViewport.setVisible(true);
+}
+
 void Modifier::showEquationControls() {
     modifierChangeMode.setButtonText("Equation");
     
@@ -452,7 +462,9 @@ void Modifier::paint(juce::Graphics& g) {
         //drawEuclideanPattern(g);
     } else if(mode == MODE_EQUATION) {
         showEquationControls();
-   }
+    } else if(mode == MODE_CUSTOM) {
+        showCustomControls();
+    }
 }
 
 
@@ -583,7 +595,7 @@ long Modifier::pow10(float input, int power) {
     return (long)input;
 }
 
-void Modifier::tickEuclidean(long roundedBeat, long prevBeat) {
+void Modifier::tickPlayPattern(long roundedBeat, long prevBeat) {
     if(state != STATE_SAMPLE) return;
     
     if(pattern.size() == 0) return;
@@ -701,12 +713,14 @@ void Modifier::tickEquation(long roundedBeat, long prevBeat) {
 
 void Modifier::tick(long roundedBeat, long prevBeat) {
     if(mode == MODE_EUCLIDEAN) {
-        tickEuclidean(roundedBeat, prevBeat);
+        tickPlayPattern(roundedBeat, prevBeat);
     } else if(mode == MODE_RANDOM) {
         tickRandom(roundedBeat, prevBeat);
     } else if(mode == MODE_EQUATION) {
        tickEquation(roundedBeat, prevBeat);
-   }
+    } else if(mode == MODE_CUSTOM) {
+        tickPlayPattern(roundedBeat, prevBeat);
+    }
 }
 
 void Modifier::updateEuclidean() {
@@ -761,6 +775,14 @@ void Modifier::updateParams(int precision) {
             // todo: check if it matches a preset before doing this
             juce::MessageManager::callAsync ([this] { modifierPresetMenu.setSelectedId(0, juce::dontSendNotification); });
             // then these are all auto set to false
+        }
+    }
+    
+    if(mode == MODE_CUSTOM) {
+        if(cycleLength.isChanged()) {
+            pattern.resize((int)cycleLength.getValue(), false);
+            
+            juce::MessageManager::callAsync([this] { patternView.setBounds(0, 0, patternView.patternWidth(), 20); });
         }
     }
 }
@@ -927,6 +949,10 @@ std::string Modifier::toolTip() {
         str = "Enter an equation using reverse polish notation, using X as a variable"; // TODO: this
     }
     
+    if(mode == MODE_EQUATION) {
+        str = "Click the pattern to change it"; // TODO: this
+    }
+    
     return str;
 }
 
@@ -942,6 +968,7 @@ void Modifier::mouseDown(const juce::MouseEvent& event) {
         m.addSectionHeader("Mode");
         m.addItem("Random", true, (mode == MODE_RANDOM), ([this]{mode = MODE_RANDOM; slidersChanged = true; }));
         m.addItem("Euclidean", true, (mode == MODE_EUCLIDEAN), ([this]{mode = MODE_EUCLIDEAN; updateEuclidean(); slidersChanged = true; }));
+        m.addItem("Custom", true, (mode == MODE_CUSTOM), ([this]{mode = MODE_CUSTOM; slidersChanged = true; }));
         m.addItem("Equation", true, (mode == MODE_EQUATION), ([this]{mode = MODE_EQUATION; slidersChanged = true; }));
         m.show();
     }
