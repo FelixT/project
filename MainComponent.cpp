@@ -44,6 +44,7 @@ sineNoteLength("Sine note length (%)", "Proportion of each beat to play the sine
     newProjectButton.setButtonText("New project");
     newProjectButton.onClick = [this] {
         loading = true;
+        bpm.setValue(120.0); bpm.update();
         resetSamples(); resetModifiers(); curBeat = -0.1f; prevBeat = -0.2f; resized();
         loading = false;
     };
@@ -472,14 +473,14 @@ void MainComponent::resized()
     loadStateButton.setBounds(220, 100, 60, 20);
     newProjectButton.setBounds(360, 100, 60, 20);
     
-    int avaliableHeight = getHeight() - 150;
+    int avaliableHeight = getHeight() - controlsHeight;
     
     // some nasty code here but it does work
     
     // == samples ==
     
-    int samplesHeight = avaliableHeight/2 - 25;
-    
+    int samplesHeight = avaliableHeight/2 - viewsMargin;
+
     samplesViewport.setBounds(0, controlsHeight, width, samplesHeight);
     
     int relativeY = 0;
@@ -502,7 +503,7 @@ void MainComponent::resized()
     // == modifiers ==
     
     int modifiersHeight = avaliableHeight/2 - viewsMargin;
-    
+
     modifiersViewport.setBounds(0, controlsHeight + samplesHeight + viewsMargin, width, modifiersHeight);
     
     relativeY = 0;

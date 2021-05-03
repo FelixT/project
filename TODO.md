@@ -19,3 +19,4 @@
 17) Change beat euclidean position to drawn text in paint func?
 18) On change of euclidean parameters, set preset menu to custom
 19) Custom sequencing
+20) Euclidean on modifiers: each pulse we 'fire' the modifier, performing its tick action regardless of roundedBeat

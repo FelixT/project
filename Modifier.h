@@ -10,6 +10,7 @@
 #include <cctype>
 
 #include "Sample.h"
+#include "PatternView.h"
 
 class Modifier : public juce::Component, private juce::Timer {
     
@@ -57,7 +58,6 @@ private:
     void hideAllControls();
     void showRandomControls();
     void showEuclideanControls();
-    void drawEuclideanPattern(juce::Graphics& g);
     void showEquationControls();
     void changeMode();
     void populateParameters();
@@ -70,7 +70,6 @@ private:
     bool isValidModifier(int index);
     void timerCallback() override;
     void mouseDown(const juce::MouseEvent &event) override;
-    
     double parseEquation(std::string input);
     std::string toolTip();
     
@@ -86,7 +85,8 @@ private:
         int interval;
     };
     
-    std::vector<euclideanPreset> euclideanPresets;
+    PatternView patternView;
+    juce::Viewport patternViewport;
     
     juce::Label modifierSelectLabel;
     juce::ComboBox modifierSelect;
@@ -100,7 +100,9 @@ private:
     juce::TextButton modifierHelp;
     juce::TextButton modifierForward;
     juce::TextButton modifierBack;
-        
+    
+    std::vector<euclideanPreset> euclideanPresets;
+
     std::string equation = "X";
     
     juce::Label modifierPosition;
@@ -114,7 +116,9 @@ private:
     bool dropdownChanged = false;
     //bool modeChanged = false;
     
-    std::vector<bool> modifierEuclideanRhythm;
+    std::vector<bool> pattern;
+    int patternPosition = -1; // also used for equations
+
     
     enum modifierMode {
         MODE_RANDOM,
@@ -123,8 +127,6 @@ private:
     };
     
     modifierMode mode = MODE_RANDOM;
-    
-    int euclideanPosition = -1; // also used for equations
     
     std::vector<Sample*> *samples;
     std::vector<Modifier*> *modifiers;
