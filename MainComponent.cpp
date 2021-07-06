@@ -23,6 +23,14 @@ sineNoteLength("Sine note length (%)", "Proportion of each beat to play the sine
     curBeatLabel.setOpaque(true);
     curBeatLabel.setTooltip("Current beat count: click this to reset it to 0.");
     
+    playPauseButton.setButtonText(">");
+    playPauseButton.onClick = [this] {
+        paused = !paused;
+        
+        if(paused) playPauseButton.setButtonText(">");
+        else playPauseButton.setButtonText("||");
+    };
+    
     sampleAddButton.setButtonText("Add sample");
     sampleAddButton.onClick = [this] { addSample(); };
     
@@ -57,6 +65,7 @@ sineNoteLength("Sine note length (%)", "Proportion of each beat to play the sine
     addAndMakeVisible(masterVolumeLabel);
     addAndMakeVisible(masterVolumeSlider);
     addAndMakeVisible(curBeatLabel);
+    addAndMakeVisible(playPauseButton);
     addAndMakeVisible(sampleAddButton);
     addAndMakeVisible(resetBeatButton);
     addAndMakeVisible(saveStateButton);
@@ -257,31 +266,35 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     
 }
 
-long MainComponent::pow10(float input, int power) {
+long MainComponent::pow10(double input, int power) {
     for(int i = 0; i < power; i++) {
-        input*=10.f;
+        input*=10.0;
     }
-    return (long)input;
+    return input;
 }
 
 void MainComponent::addSample() {
-    Sample *sample = new Sample(&formatManager);
+    Sample *sample = new Sample(&formatManager, samples.size());
     samples.push_back(sample);
     
     samplesComponent.addAndMakeVisible(sample);
     
     resized();
-
+    
+    // scroll viewport to bottom
+    samplesViewport.setViewPosition(samplesViewport.getViewPositionX(), samplesComponent.getHeight());
 }
 
 void MainComponent::addModifier() {
-    Modifier *modifier = new Modifier(&samples, &modifiers);
+    Modifier *modifier = new Modifier(&samples, &modifiers, modifiers.size());
     modifiers.push_back(modifier);
     
     modifiersComponent.addAndMakeVisible(modifier);
     
     resized();
-
+    
+    // scroll viewport to bottom
+    modifiersViewport.setViewPosition(modifiersViewport.getViewPositionX(), modifiersComponent.getHeight());
 }
 
 // TODO: make wave its on separate class
@@ -305,7 +318,23 @@ void MainComponent::updateWaveParams() {
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
     
+    //if(paused && samples.size() > 0) juce::MessageManager::callAsync ([this] { samples.at(0)->repaint(); });
+    
     if(loading) return;
+    
+    if(paused) {
+        // we do this so the sample's waveform can update even while the track is paused
+        for(int i = 0; i < samples.size(); i++) {
+            Sample *sample = samples.at(i);
+            if(sample->isLoaded) {
+                sample->updateBuffers(bufferToFill.numSamples);
+            }
+        }
+        
+        // TODO: update modifiers pattern display while paused
+        
+        return;
+    }
     
     // get buffers
     float* leftBuffer = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
@@ -345,6 +374,10 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         float outLeft = 0.f;
         float outRight = 0.f;
         
+        bool anySoloed = false;
+        float soloLeft = 0.f;
+        float soloRight = 0.f;
+        
         // perform any modifier actions
         for(int i = 0; i < modifiers.size(); i++) {
             Modifier *modifier = modifiers.at(i);
@@ -354,14 +387,24 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // wave
         getWaveValue(outLeft, outRight);
         
+        
         // samples
         for(int i = 0; i < samples.size(); i++) {
             Sample *sample = samples.at(i);
             sample->updateParams(bpm.getValue(), curSampleRate, precision);
-            sample->getValue(outLeft, outRight, roundBeat, prevBeat);
+            if(sample->getSoloed()) {
+                sample->getValue(soloLeft, soloRight, roundBeat, prevBeat);
+                anySoloed = true;
+            } else {
+                sample->getValue(outLeft, outRight, roundBeat, prevBeat);
+            }
         }
         
-
+        if(anySoloed) {
+            outLeft = soloLeft;
+            outRight = soloRight;
+        }
+        
         leftBuffer[sampleOffset] = outLeft*masterVolume;
         rightBuffer[sampleOffset] = outRight*masterVolume;
         
@@ -397,6 +440,9 @@ void MainComponent::releaseResources()
 //==============================================================================
 void MainComponent::paint (juce::Graphics& g)
 {
+    
+    std::cout << "all paint" << std::endl;
+    
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
      
@@ -413,10 +459,10 @@ void MainComponent::paint (juce::Graphics& g)
         g.drawRect(0, controlsHeight, width, samplesHeight);
         if(samples.size() == 0) {
             g.setFont(20);
-            g.drawText("< Samples >", 0, 151, width, samplesHeight-1, juce::Justification::centred);
+            g.drawText("< Samples >", 0, controlsHeight+1, width, samplesHeight-1, juce::Justification::centred);
 
             g.setColour(juce::Colour(255, 255, 255));
-            g.drawText("< Samples >", 0, 150, width, samplesHeight, juce::Justification::centred);
+            g.drawText("< Samples >", 0, controlsHeight, width, samplesHeight, juce::Justification::centred);
         }
     }
     
@@ -458,12 +504,13 @@ void MainComponent::resized()
     sineFrequency.setBounds(120, 50, controlswidth/2 - 10, 40);
     sineNoteLength.setBounds(120 + controlswidth/2 + 10, 50, controlswidth/2 - 10, 40);
     
-    curBeatLabel.setBounds(0, 0, 100, 20);
+    curBeatLabel.setBounds(0, 0, 80, 20);
     curBeatLabel.setEditable(true);
     curBeatLabel.onEditorShow = [this] {
         curBeat = -0.1f; prevBeat = -0.2f;
         // terrible & hacky way to reset beat if the counter is clicked
     };
+    playPauseButton.setBounds(80, 0, 25, 20);
     
     sampleAddButton.setBounds(10, 100, 60, 20);
     modifierAddButton.setBounds(80, 100, 60, 20);
@@ -479,28 +526,42 @@ void MainComponent::resized()
     
     // == samples ==
     
+    auto sampleViewPos = samplesViewport.getViewPosition();
+    
     int samplesHeight = avaliableHeight/2 - viewsMargin;
 
     samplesViewport.setBounds(0, controlsHeight, width, samplesHeight);
     
     int relativeY = 0;
-
+    
+    int scrollBarMargin;
+    
+    if(samplesViewport.getVerticalScrollBar().isShowing())
+        scrollBarMargin = samplesViewport.getVerticalScrollBar().getWidth();
+    else scrollBarMargin = 0;
+    
     for(int i = 0; i < samples.size(); i++) {
         if(samples[i]->isCollapsed()) {
             int height = 40;
-            samples[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin, height - 2*componentMargin);
+            samples[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin - scrollBarMargin, height - 2*componentMargin);
             relativeY+=height;
             
         } else {
             int height = 140;
-            samples[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin, height- 2*componentMargin);
+            samples[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin - scrollBarMargin, height- 2*componentMargin);
             relativeY+=height;
         }
     }
     
+    
     samplesComponent.setBounds(0, 0, width, relativeY);
     
+    samplesViewport.setViewPosition(sampleViewPos);
+
+    
     // == modifiers ==
+    
+    auto modifierViewPos = samplesViewport.getViewPosition();
     
     int modifiersHeight = avaliableHeight/2 - viewsMargin;
 
@@ -508,13 +569,19 @@ void MainComponent::resized()
     
     relativeY = 0;
     
+    if(modifiersViewport.getVerticalScrollBar().isShowing())
+        scrollBarMargin = modifiersViewport.getVerticalScrollBar().getWidth();
+    else scrollBarMargin = 0;
+    
     for(int i = 0; i < modifiers.size(); i++) {
         int height = 100;
-        modifiers[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin, height - 2*componentMargin);
+        modifiers[i]->setBounds(componentMargin, relativeY + componentMargin, width - 2*componentMargin - scrollBarMargin, height - 2*componentMargin);
         relativeY+=height;
     }
 
     modifiersComponent.setBounds(0, 0, width, relativeY);
+    
+    modifiersViewport.setViewPosition(modifierViewPos);
     
 }
 

@@ -7,6 +7,7 @@ class PatternView : public juce::Component {
 public:
     PatternView(std::vector<bool> *pattern, int *position);
     ~PatternView();
+    void setEditable(bool val);
     void paint(juce::Graphics& g) override;
     int patternWidth();
 private:

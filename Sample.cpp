@@ -1,15 +1,19 @@
 #include "Sample.h"
 
-Sample::Sample(juce::AudioFormatManager *manager)
+Sample::Sample(juce::AudioFormatManager *manager, int index)
 : bpm("Sample BPM", "", 5.0, 500.0, 0.01, 120.0),
 cropStart("Crop sample (start %)", "At what point to start playing the sample", 0.0, 100.0, 0.01, 0.0),
-cropEnd("Crop sample (end %)", "At what point to stop playing the sample", 0.0, 100.0, 0.01, 0.0),
+cropEnd("Crop sample (end %)", "At what point to stop playing the sample", 0.0, 100.0, 0.01, 100.0),
 interval("Sample interval (beats)", "How often (in beats) the sample should play", 0.25, 16.0, 0.25, 1.0),
 delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0, 10.0, 0.25, 0.0) {
+    
+    setOpaque(true);
     
     formatManager = manager;
     
     sampleWaveform = new WaveformView(&sampleLength, &curPos, &volume, &startPos, &endPos, formatManager);
+    
+    sampleIndex = index;
     
     // label (name)
     sampleLabel.setText("Unloaded", juce::dontSendNotification);
@@ -39,7 +43,7 @@ delay("Delay", "Introduces a delay (in beats) before the sample is played", 0.0,
     
     // mute & solo
     sampleSoloButton.setButtonText("S");
-    sampleSoloButton.setTooltip("Solo sample [not yet implemented]");
+    sampleSoloButton.setTooltip("Solo sample");
     sampleSoloButton.onClick = [this] {
         isSoloed = !isSoloed;
     };
@@ -105,6 +109,10 @@ void Sample::setMuted(bool m) {
     isMuted = m;
 }
 
+bool Sample::getSoloed() {
+    return isSoloed;
+}
+
 // disables the sample for its interval
 void Sample::disable() {
     isDisabled = true;
@@ -112,8 +120,13 @@ void Sample::disable() {
 
 void Sample::paint (juce::Graphics& g)
 {
+    std::cout << "sample paint" << std::endl;
     
     // (Our component is opaque, so we must completely fill the background with a solid colour)
+    g.setColour(juce::Colour(30, 30, 30));
+    g.fillAll();
+    
+    
     if(!isWaiting) { // playing
         g.setColour(juce::Colour(50, 100, 50));
     } else { // waiting
@@ -146,17 +159,22 @@ void Sample::paint (juce::Graphics& g)
         bpm.setVisible(false);
         sampleBrowseButton.setVisible(false);
         sampleVolumeSlider.setVisible(false);
+        
     } else {
         bpm.setVisible(true);
         sampleBrowseButton.setVisible(true);
         sampleVolumeSlider.setVisible(true);
     }
+    
+    // sample index label
+    g.setColour(juce::Colours::white);
+    g.drawText(std::to_string(sampleIndex), 25, 4, 20, 18, juce::Justification::centred);
 }
 
 void Sample::resized() {
     int width = getWidth();
     int height = getHeight();
-    
+        
     // label
     sampleLabel.setBounds(50, 4, 150, 20);
 
@@ -240,11 +258,11 @@ void Sample::browse() {
     }
 }
 
-long Sample::pow10(float input, int power) {
+long Sample::pow10(double input, int power) {
     for(int i = 0; i < power; i++) {
-        input*=10.f;
+        input*=10.0;
     }
-    return (long)input;
+    return input;
 }
 
 void Sample::getValue(float &outLeft, float &outRight, long roundedBeat, long prevBeat) {
@@ -312,7 +330,7 @@ void Sample::updateBuffers(int numSamples) {
     
     
     startPos = cropStart.getValue() * 0.01 * sampleLength;
-    endPos = (1.0 - (cropEnd.getValue() * 0.01)) * sampleLength;
+    endPos = cropEnd.getValue() * 0.01 * sampleLength;
 }
 
 void Sample::setLabel(std::string label) {

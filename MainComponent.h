@@ -57,7 +57,7 @@ private:
     float waveVolume = 0.5f; // 0 - 1
     float masterVolume = 1.0f;
     
-    long pow10(float input, int power);
+    long pow10(double input, int power);
     
     double curSampleRate = 0.0;
     double curBeat = 0.0;
@@ -94,6 +94,7 @@ private:
     juce::TextButton loadStateButton;
     juce::TextButton modifierAddButton;
     juce::TextButton newProjectButton;
+    juce::TextButton playPauseButton;
     
     juce::AudioFormatManager formatManager;
     
@@ -116,6 +117,8 @@ private:
     };
     
     bool loading = false;
+    
+    bool paused = true;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

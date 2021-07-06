@@ -15,13 +15,14 @@
 class Modifier : public juce::Component, private juce::Timer {
     
 public:
-    Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer);
+    Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer, int index);
     ~Modifier();
     void paint (juce::Graphics& g) override;
     void resized() override;
     void refreshDropdownItems();
     void tick(long roundedBeat, long prevBeat);
     void updateParams(int precision);
+    void highlight(int frameInterval = 20, int length = 8);
     std::string toString();
     
     void setInterval(double val);
@@ -50,7 +51,7 @@ public:
     Parameter euclideanNumHits;
     
 private:
-    long pow10(float input, int power);
+    long pow10(double input, int power);
     std::vector<bool> genEuclideanRhythm(int length, int pulses);
     void tickPlayPattern(long roundedBeat, long prevBeat);
     void tickRandom(long roundedBeat, long prevBeat);
@@ -74,6 +75,8 @@ private:
     double parseEquation(std::string input);
     std::string toolTip();
     
+    int modifierIndex;
+    
     enum modifierState {
         STATE_IDLE,
         STATE_SAMPLE,
@@ -89,6 +92,8 @@ private:
     PatternView patternView;
     juce::Viewport patternViewport;
     
+    juce::Label modifierIndexLabel;
+    
     juce::Label modifierSelectLabel;
     juce::ComboBox modifierSelect;
     juce::Label modifierParameterLabel;
@@ -99,6 +104,8 @@ private:
     juce::Label modifierPresetLabel;
     juce::ComboBox modifierPresetMenu;
     juce::TextButton modifierHelp;
+    
+    juce::Label modifierCyclePositionLabel;
     juce::TextButton modifierForward;
     juce::TextButton modifierBack;
     
@@ -115,7 +122,7 @@ private:
     
     bool slidersChanged = false;
     bool dropdownChanged = false;
-    //bool modeChanged = false;
+    bool modeChanged = false;
     
     std::vector<bool> pattern;
     int patternPosition = -1; // also used for equations
@@ -136,10 +143,14 @@ private:
     long roundedStep;
     long roundedPulseDuration;
     
-    juce::Colour background = juce::Colour(100, 100, 100);
+    juce::Colour background = juce::Colour(80, 80, 80);
     
     std::vector<Parameter*> params;
     int parameterIndex = -1;
+    
+    bool highlighted = false;
+    int highlightPos = 0; // highlight animation position
+    int highlightLen = 8; // number of frames of highlight animation
     
 };
 

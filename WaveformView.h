@@ -24,7 +24,7 @@ private:
     juce::AudioThumbnail waveThumbnail;
     juce::AudioFormatManager *formatManager;
     
-    bool cropped = false;
+    bool cropped = true;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveformView)
 };

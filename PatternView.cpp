@@ -11,6 +11,10 @@ PatternView::~PatternView() {
     
 }
 
+void PatternView::setEditable(bool val) {
+    editable = val;
+}
+
 void PatternView::paint(juce::Graphics& g) {
 
     g.fillAll(juce::Colour(100, 100, 100));

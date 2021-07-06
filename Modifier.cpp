@@ -15,7 +15,7 @@
 // by Godfried Toussaint
 // http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf
 
-Modifier::Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer)
+Modifier::Modifier(std::vector<Sample*> *samplesPointer, std::vector<Modifier*> *modifiersPointer, int index)
 : randomInterval("Interval (beats)", "How often (in beats) the modifier should fire", 1.0, 32.0, 1.0, 8.0),
 randomMin("Minimum value", "Lowest possible value which the parameter could be assigned", 0.25, 10.0, 0.25, 2.0),
 randomMax("Maximum value", "Highest possible value which the parameter could be assigned", 0.25, 10.0, 0.25, 4.0),
@@ -25,12 +25,16 @@ pulseDuration("Pulse duration (beats)", "How long each 'pulse' ('hit'/'break') s
 euclideanNumHits("Hits per cycle", "How many 'hits' (i.e. times the sample will be played) per cycle", 1.0, 32.0, 1.0, 4.0),
 patternView(&pattern, &patternPosition)
 {
-    //setOpaque(true); // ??
+    setOpaque(true); // ??
     
-    startTimer(500); // every half second
+    startTimer(200); // refresh drop down
     
     samples = samplesPointer;
     modifiers = modifiersPointer;
+    
+    // modifier index
+    modifierIndex = index;
+    modifierIndexLabel.setText(std::to_string(modifierIndex), juce::dontSendNotification);
     
     // select sample/modifier
     modifierSelectLabel.setText("Object to modify:", juce::dontSendNotification);
@@ -42,7 +46,13 @@ patternView(&pattern, &patternPosition)
     populateParameters();
     modifierParameterLabel.setText("Parameter to modify:", juce::dontSendNotification);
     modifierParameterLabel.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 14.f, juce::Font::plain));
-    modifierParameter.onChange = [this] { parameterIndex = modifierParameter.getSelectedItemIndex(); parameterChanged(); };
+    modifierParameter.onChange = [this] {
+        // tell previous parameter we're not modifying it anymore
+        if(isValidParam(parameterIndex)) params.at(parameterIndex)->removeModifier(modifierIndex);
+        parameterIndex = modifierParameter.getSelectedItemIndex(); parameterChanged();
+        // tell new we are
+        if(isValidParam(parameterIndex)) params.at(parameterIndex)->addModifier(modifierIndex);
+    };
    
     // presets
     populatePresets();
@@ -56,12 +66,14 @@ patternView(&pattern, &patternPosition)
     // help
     modifierHelp.setButtonText("?");
     modifierHelp.onClick = [this] {
-        // TODO: change this to be a tool tip
         juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::AlertIconType::InfoIcon, "Modifier Help", toolTip());
     };
-    modifierHelp.setTooltip("What is this component doing?");
+    modifierHelp.setTooltip("What does this do?");
     
-    // euclidean position
+    // cycle position
+    modifierCyclePositionLabel.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 14.f, juce::Font::plain));
+    modifierCyclePositionLabel.setText("Cycle position", juce::dontSendNotification);
+    
     modifierBack.setButtonText("<");
     modifierBack.onClick = [this] { patternPosition -= 1; patternPosition %= pattern.size(); };
     modifierBack.setTooltip("Change pattern position");
@@ -77,9 +89,12 @@ patternView(&pattern, &patternPosition)
     modifierEquation.setText(equation, juce::dontSendNotification);
     modifierEquation.onTextChange = [this] { equation = modifierEquation.getText().toStdString(); };
     modifierEquationLabel.setText("Equation", juce::dontSendNotification);
+    modifierEquationLabel.setJustificationType(juce::Justification::left);
     modifierEquationLabel.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 14.f, juce::Font::plain));
 
     patternViewport.setViewedComponent(&patternView, false);
+    
+    addAndMakeVisible(modifierIndexLabel);
     
     addChildComponent(modifierEquation);
     addChildComponent(modifierEquationLabel);
@@ -87,6 +102,7 @@ patternView(&pattern, &patternPosition)
     addChildComponent(modifierPresetLabel);
     addChildComponent(modifierPresetMenu);
     
+    addChildComponent(modifierCyclePositionLabel);
     addChildComponent(modifierBack);
     addChildComponent(modifierForward);
     addChildComponent(modifierPosition);
@@ -109,10 +125,23 @@ patternView(&pattern, &patternPosition)
     addChildComponent(pulseDuration);
     addChildComponent(euclideanNumHits);
     
+    modeChanged = true;
+    
 }
 
 Modifier::~Modifier() {
     
+}
+
+void Modifier::highlight(int frameInterval, int length) {
+    highlighted = true;
+    highlightPos = 0;
+    
+    highlightLen = length;
+    
+    repaint();
+    
+    startTimer(frameInterval); // speed up timer for highlight animation
 }
 
 std::vector<Parameter*> Modifier::getParams() {
@@ -131,6 +160,7 @@ std::vector<Parameter*> Modifier::getParams() {
 void Modifier::parameterChanged() {
 
     if(isValidParam(parameterIndex)) {
+        
         double min = params.at(parameterIndex)->getMin();
         double max = params.at(parameterIndex)->getMax();
         double step = params.at(parameterIndex)->getStep();
@@ -146,12 +176,20 @@ void Modifier::parameterChanged() {
         randomStep.setMin(step);
         
         juce::MessageManager::callAsync ([this] { randomMin.updateAll(); randomMax.updateAll(); randomStep.updateAll(); });
+        
+        if((state == STATE_SAMPLE && isValidSample(selected))
+        || (state == STATE_MODIFIER && isValidModifier(selected))) {
+            juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->highlight(20, 20); }); // highlight new param
+        }
     }
 }
 
 void Modifier::populateParameters() {
     
     std::cout << "populating params" << std::endl;
+    
+    // tell previous parameter we're not modifying it anymore
+    if(isValidParam(parameterIndex)) params.at(parameterIndex)->removeModifier(modifierIndex);
     
     int selectedID = modifierParameter.getSelectedId();
     
@@ -179,6 +217,11 @@ void Modifier::populateParameters() {
     if(selectedID <= modifierParameter.getNumItems())
         modifierParameter.setSelectedId(selectedID, juce::dontSendNotification);
     
+    
+    // tell new we are
+    if(isValidParam(parameterIndex)) params.at(parameterIndex)->addModifier(modifierIndex);
+
+    
 }
 
 void Modifier::changeMode() {
@@ -195,6 +238,7 @@ void Modifier::changeMode() {
     }
     
     slidersChanged = true;
+    modeChanged = true;
 }
 
 void euclideanRhythmFix(int &numLeft, int &numRight, std::vector<bool> &vecLeft, std::vector<bool> &vecRight) {
@@ -289,33 +333,34 @@ std::vector<bool> Modifier::genEuclideanRhythm(int length, int pulses) {
 }
 
 void Modifier::refreshDropdownItems() {
-    std::cout << "refreshing the drop down" << std::endl;
-    
     int selectedID = modifierSelect.getSelectedId();
     
     modifierSelect.clear(juce::dontSendNotification);
     
     // 0-1 = idle
-    modifierSelect.addItem("None selected", 1);
+    modifierSelect.addItem("None/disable modifier", 1);
     
-    modifierSelect.addSectionHeading("SAMPLES");
+    modifierSelect.addSeparator();
+    
+    modifierSelect.addSectionHeading("Samples:");
     
     // 2 - samples->size+1 = samples
     for(int i = 0; i < samples->size(); i++) {
-        const juce::String label = samples->at(i)->getLabel();
+        juce::String label = std::to_string(i) + " - " + samples->at(i)->getLabel().toStdString();
         modifierSelect.addItem(label, i+2);
         //std::cout << i+2 << std::endl;
     }
     
     modifierSelect.addSeparator();
     
-    modifierSelect.addSectionHeading("MODIFIERS");
+    modifierSelect.addSectionHeading("Modifiers:");
     
     // > samples->size+1 = modifiers
     
     // modifiers
     for(int i = 0; i < modifiers->size(); i++) {
-        const juce::String label = "Modifier" + std::to_string(i);
+        juce::String label = std::to_string(i) + " - (modifier)";
+        
         modifierSelect.addItem(label, i+samples->size()+2);
         //std::cout << i + samples->size() + 2 << std::endl;
     }
@@ -332,6 +377,7 @@ void Modifier::hideAllControls() {
     modifierPresetLabel.setVisible(false);
     modifierParameter.setVisible(false);
     modifierParameterLabel.setVisible(false);
+    modifierCyclePositionLabel.setVisible(false);
     modifierBack.setVisible(false);
     modifierPosition.setVisible(false);
     modifierForward.setVisible(false);
@@ -371,6 +417,8 @@ void Modifier::showEuclideanControls() {
     modifierPresetLabel.setVisible(true);
     modifierPresetMenu.setVisible(true);
     
+    modifierCyclePositionLabel.setVisible(true);
+    
     modifierPosition.setVisible(true);
     
     modifierBack.setVisible(true);
@@ -385,6 +433,9 @@ void Modifier::showCustomControls() {
     pulseDuration.setActive(true);
     cycleLength.setActive(true);
     
+    
+    modifierCyclePositionLabel.setVisible(true);
+    
     modifierPosition.setVisible(true);
     
     modifierBack.setVisible(true);
@@ -395,8 +446,6 @@ void Modifier::showCustomControls() {
 
 void Modifier::showEquationControls() {
     modifierChangeMode.setButtonText("Equation");
-    
-    hideAllControls();
     
     cycleLength.setActive(true);
     pulseDuration.setActive(true);
@@ -414,6 +463,8 @@ void Modifier::showEquationControls() {
 }
 
 void Modifier::paint(juce::Graphics& g) {
+    
+    std::cout << "paint" << std::endl;
     
     if(dropdownChanged) {
         refreshDropdownItems();
@@ -447,30 +498,49 @@ void Modifier::paint(juce::Graphics& g) {
     }
     
     // draw background
+    g.setColour(juce::Colour(30, 30, 30));
+    g.fillAll();
+    
     g.setColour(background);
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.f);
+    g.setColour(juce::Colour(150, 150, 150));
+    g.drawRoundedRectangle(getLocalBounds().toFloat(), 10.f, 1.f);
+    
+    if(highlighted) {
+        g.setColour(juce::Colours::whitesmoke);
+        g.setOpacity(((highlightLen-highlightPos)/(float)highlightLen)*0.75f);
+        g.drawRoundedRectangle(getLocalBounds().toFloat(), 4.f, 6.f);
+    }
     
     // update position
     modifierPosition.setText(std::to_string(patternPosition), juce::dontSendNotification);
         
-    hideAllControls();
-    if(mode == MODE_RANDOM) {
-        showRandomControls();
-    } else if(mode == MODE_EUCLIDEAN) {
-        showEuclideanControls();
-        patternView.repaint();
-        //drawEuclideanPattern(g);
-    } else if(mode == MODE_EQUATION) {
-        showEquationControls();
-    } else if(mode == MODE_CUSTOM) {
-        showCustomControls();
+    
+    if(modeChanged) {
+        hideAllControls();
+        if(mode == MODE_RANDOM) {
+            showRandomControls();
+        } else if(mode == MODE_EUCLIDEAN) {
+            showEuclideanControls();
+            patternView.repaint();
+        } else if(mode == MODE_EQUATION) {
+            showEquationControls();
+        } else if(mode == MODE_CUSTOM) {
+            showCustomControls();
+            patternView.repaint();
+        }
+        modeChanged = false;
     }
 }
 
 
 void Modifier::resized() {
+    
+    modifierIndexLabel.setBounds(0, 0, 40, 40);
+    
+    
     // divide up into 4 columns
-    int marginX = 15; // margins on far left & right of modifier
+    int marginX = 40; // margins on far left & right of modifier
     int columnWidth = (getWidth() - 2*marginX) / 4;
     
     int margin = 4; // inidividual parameter margins
@@ -500,10 +570,10 @@ void Modifier::resized() {
     y += rowHeight;
     randomMin.setBounds(x, y, componentWidth, 40);
     euclideanNumHits.setBounds(x, y, componentWidth, 40);
-    modifierEquationLabel.setBounds(x, y, componentWidth, 20);
+    modifierEquationLabel.setBounds(x, y, componentWidth, 14);
     modifierEquation.setBounds(x, y+14, componentWidth, 20);
     
-    // column 3: step, duration max
+    // column 3: step, duration max, cycle position
     x += columnWidth;
     y = margin;
     randomStep.setBounds(x, y, columnWidth, 40);
@@ -511,9 +581,10 @@ void Modifier::resized() {
     
     y += rowHeight;
     randomMax.setBounds(x, y, columnWidth, 40);
-    modifierBack.setBounds(x, y, 25, 20);
-    modifierPosition.setBounds(x+25, y, 25, 20);
-    modifierForward.setBounds(x+50, y, 25, 20);
+    modifierCyclePositionLabel.setBounds(x, y, columnWidth, 14);
+    modifierBack.setBounds(x, y+14, 25, 20);
+    modifierPosition.setBounds(x+25, y+14, 25, 20);
+    modifierForward.setBounds(x+50, y+14, 25, 20);
     
     // column 4: changemode & help, euclidean drawing
     x += columnWidth;
@@ -553,6 +624,7 @@ void Modifier::setSelected(int index) {
 void Modifier::setMode(int index) {
     mode = (modifierMode)index;
     slidersChanged = true;
+    modeChanged = true;
 }
 
 void Modifier::setState(int index) {
@@ -588,11 +660,11 @@ void Modifier::setEuclideanHits(double num) {
     slidersChanged = true;
 }
 
-long Modifier::pow10(float input, int power) {
+long Modifier::pow10(double input, int power) {
     for(int i = 0; i < power; i++) {
-        input*=10.f;
+        input*=10.0;
     }
-    return (long)input;
+    return input;
 }
 
 void Modifier::tickPlayPattern(long roundedBeat, long prevBeat) {
@@ -619,7 +691,7 @@ void Modifier::tickPlayPattern(long roundedBeat, long prevBeat) {
                 sample->setInterval(pulseDuration.getValue()); // play immediately?
             } else {
                 // don't play
-                background = juce::Colour(100, 100, 100);
+                background = juce::Colour(80, 80, 80);
                 juce::MessageManager::callAsync ([this] { repaint(); });
                 
                 // disable the sample from starting for an interval of 'step'
@@ -668,7 +740,7 @@ void Modifier::tickRandom(long roundedBeat, long prevBeat) {
                 
                 if(isValidParam(parameterIndex)) {
                     params.at(parameterIndex)->setValue(newVal);
-                    juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->update(); });
+                    juce::MessageManager::callAsync ([this] { params.at(parameterIndex)->update(); params.at(parameterIndex)->highlight(); highlight(); });
                 }
                 
             }
@@ -740,6 +812,7 @@ void Modifier::updateEuclidean() {
 }
 
 void Modifier::updateSelected() {
+    
     int selectedId = modifierSelect.getSelectedId();
     
     if(selectedId <= 1) {
@@ -760,9 +833,9 @@ void Modifier::updateSelected() {
 void Modifier::updateParams(int precision) {
     if(slidersChanged || dropdownChanged) juce::MessageManager::callAsync ([this] { repaint(); });
     
-    roundedInterval = pow10((float)randomInterval.getValue(), precision);
-    roundedStep = pow10((float)randomStep.getValue(), precision);
-    roundedPulseDuration = pow10((float)pulseDuration.getValue(), precision);
+    roundedInterval = pow10(randomInterval.getValue(), precision);
+    roundedStep = pow10(randomStep.getValue(), precision);
+    roundedPulseDuration = pow10(pulseDuration.getValue(), precision);
     
     if(mode == MODE_EUCLIDEAN) {
         // if any parameters are changed we update the euclidean
@@ -776,14 +849,19 @@ void Modifier::updateParams(int precision) {
             juce::MessageManager::callAsync ([this] { modifierPresetMenu.setSelectedId(0, juce::dontSendNotification); });
             // then these are all auto set to false
         }
+        
+        patternView.setEditable(false);
     }
     
     if(mode == MODE_CUSTOM) {
         if(cycleLength.isChanged()) {
             pattern.resize((int)cycleLength.getValue(), false);
             
-            juce::MessageManager::callAsync([this] { patternView.setBounds(0, 0, patternView.patternWidth(), 20); });
+            juce::MessageManager::callAsync([this] { patternView.setBounds(0, 0, patternView.patternWidth(), 20); repaint(); });
+            
         }
+        
+        patternView.setEditable(true);
     }
 }
 
@@ -894,6 +972,28 @@ double Modifier::parseEquation(std::string input) {
             st.push(result);
         }
         
+        if(tokens.at(i) == "cos") {
+            if(st.size() < 1) return -1;
+            
+            double arg1 = st.top();
+            st.pop();
+            
+            double result = std::cos(arg1);
+            st.push(result);
+        }
+        
+        if(tokens.at(i) == "**") {
+            if(st.size() < 2) return -1;
+            
+            double arg2 = st.top();
+            st.pop();
+            double arg1 = st.top();
+            st.pop();
+            
+            double result = std::pow(arg1, arg2);
+            st.push(result);
+        }
+        
         
     }
     
@@ -938,38 +1038,52 @@ std::string Modifier::toolTip() {
     if(parameterName.empty()) parameterName = "<not selected>";
     
     if(mode == MODE_RANDOM) {
-        str = "This modifier changes the sample " + sampleName + "'s " + parameterName + " to a random value between " + juce::String(randomMin.getValue(), 2).toStdString() + " and " + juce::String(randomMax.getValue(), 2).toStdString() + " which is divisible by " + juce::String(randomStep.getValue(), 2).toStdString() + ", every " + juce::String(randomInterval.getValue(), 2).toStdString() + " beats.";
+        str = "This modifier changes the sample <" + sampleName + ">'s " + parameterName + " to a random value between " + juce::String(randomMin.getValue(), 2).toStdString() + " and " + juce::String(randomMax.getValue(), 2).toStdString() + " which is divisible by " + juce::String(randomStep.getValue(), 2).toStdString() + ", every " + juce::String(randomInterval.getValue(), 2).toStdString() + " beats.";
     }
     
     if(mode == MODE_EUCLIDEAN) {
-        str = "This modifier uses a Euclidean algorithm to generate a rhythm for sample " + sampleName + " of length " + std::to_string((int)cycleLength.getValue()) + " , containing " + std::to_string((int)euclideanNumHits.getValue()) + " 'hits' and " + std::to_string((int)cycleLength.getValue()-(int)euclideanNumHits.getValue()) + " 'breaks'. Each hit or break lasts " + juce::String(pulseDuration.getValue(), 2).toStdString() + " beats.";
+        str = "This modifier uses a Euclidean algorithm to generate a rhythm for sample <" + sampleName + "> of length " + std::to_string((int)cycleLength.getValue()) + " , containing " + std::to_string((int)euclideanNumHits.getValue()) + " 'hits' and " + std::to_string((int)cycleLength.getValue()-(int)euclideanNumHits.getValue()) + " 'breaks'. Each hit or break lasts " + juce::String(pulseDuration.getValue(), 2).toStdString() + " beats.";
     }
     
     if(mode == MODE_EQUATION) {
         str = "Enter an equation using reverse polish notation, using X as a variable"; // TODO: this
     }
     
-    if(mode == MODE_EQUATION) {
-        str = "Click the pattern to change it"; // TODO: this
+    if(mode == MODE_CUSTOM) {
+        str = "Create a custom pattern"; // TODO: this
     }
     
     return str;
 }
 
 void Modifier::timerCallback() {
-    refreshDropdownItems();
+    
+    if(highlighted) {
+        if(highlightPos == highlightLen) {
+            highlighted = false;
+            startTimer(200); // go back to slow ticks to update dropdown
+        }
+    
+        repaint();
+        highlightPos++;
+    
+    } else {
+        refreshDropdownItems();
+    }
+    
 }
 
 void Modifier::mouseDown(const juce::MouseEvent& event) {
+
     if(event.mods.isRightButtonDown()) {
         // show right click menu
         
         juce::PopupMenu m;
         m.addSectionHeader("Mode");
-        m.addItem("Random", true, (mode == MODE_RANDOM), ([this]{mode = MODE_RANDOM; slidersChanged = true; }));
-        m.addItem("Euclidean", true, (mode == MODE_EUCLIDEAN), ([this]{mode = MODE_EUCLIDEAN; updateEuclidean(); slidersChanged = true; }));
-        m.addItem("Custom", true, (mode == MODE_CUSTOM), ([this]{mode = MODE_CUSTOM; slidersChanged = true; }));
-        m.addItem("Equation", true, (mode == MODE_EQUATION), ([this]{mode = MODE_EQUATION; slidersChanged = true; }));
+        m.addItem("Random", true, (mode == MODE_RANDOM), ([this]{mode = MODE_RANDOM; slidersChanged = true; modeChanged = true; }));
+        m.addItem("Euclidean", true, (mode == MODE_EUCLIDEAN), ([this]{mode = MODE_EUCLIDEAN; updateEuclidean(); slidersChanged = true; modeChanged = true; }));
+        m.addItem("Custom", true, (mode == MODE_CUSTOM), ([this]{mode = MODE_CUSTOM; slidersChanged = true; modeChanged = true; }));
+        m.addItem("Equation", true, (mode == MODE_EQUATION), ([this]{mode = MODE_EQUATION; slidersChanged = true; modeChanged = true; }));
         m.show();
     }
 }

@@ -10,7 +10,7 @@
 class Sample : public juce::Component {
     
 public:
-    Sample(juce::AudioFormatManager *manager);
+    Sample(juce::AudioFormatManager *manager, int index);
     ~Sample();
     std::vector<Parameter*> getParams();
     void paint (juce::Graphics& g) override;
@@ -30,6 +30,7 @@ public:
     void setParameter(int index);
     void setCollapsed(bool c);
     void setMuted(bool m);
+    bool getSoloed();
     void setBpm(double val);
     bool isCollapsed();
     void disable();
@@ -46,7 +47,7 @@ public:
 
 private:
     void browse();
-    long pow10(float input, int power);
+    long pow10(double input, int power);
     bool loadSample(juce::File file);
     void mouseDown(const juce::MouseEvent &event) override;
     
@@ -86,6 +87,8 @@ private:
     bool isDisabled = false;
     bool isMuted = false;
     bool isSoloed = false;
+    
+    int sampleIndex;
     
     juce::AudioFormatManager *formatManager;
     
