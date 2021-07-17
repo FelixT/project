@@ -247,6 +247,7 @@ void Sample::browse() {
     juce::FileChooser sampleChooser("Select a sample", {}, formatManager->getWildcardForAllFormats());
     
     if(sampleChooser.browseForFileToOpen()) {
+        isLoaded = false;
         juce::File file = sampleChooser.getResult();
 
         if(loadSample(file)) {
@@ -380,11 +381,11 @@ std::string Sample::toString() {
     std::string output = "";
     output += "Sample " + sampleLabel.getText().toStdString() + " {\n";
     output += "path " + samplePath + "\n";
-    output += "bpm " + std::to_string(bpm.getValue()) + "\n";
-    output += "start " + std::to_string(cropStart.getValue()) + "\n";
-    output += "end " + std::to_string(cropEnd.getValue()) + "\n";
-    output += "interval " + std::to_string(interval.getValue()) + "\n";
-    output += "delay " + std::to_string(delay.getValue()) + "\n";
+    output += "bpm " + bpm.getStrValue() + "\n";
+    output += "start " + cropStart.getStrValue() + "\n";
+    output += "end " + cropEnd.getStrValue() + "\n";
+    output += "interval " + interval.getStrValue() + "\n";
+    output += "delay " + delay.getStrValue() + "\n";
     output += "volume " + std::to_string(volume) + "\n";
     output += "muted " + std::to_string(isMuted) + "\n";
     output += "collapsed " + std::to_string(collapsed) + "\n";

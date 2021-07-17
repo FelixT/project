@@ -72,7 +72,6 @@ patternView(&pattern, &patternPosition)
     
     // cycle position
     modifierCyclePositionLabel.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 14.f, juce::Font::plain));
-    modifierCyclePositionLabel.setText("Cycle position", juce::dontSendNotification);
     
     modifierBack.setButtonText("<");
     modifierBack.onClick = [this] { patternPosition -= 1; patternPosition %= pattern.size(); };
@@ -106,8 +105,10 @@ patternView(&pattern, &patternPosition)
     addChildComponent(modifierBack);
     addChildComponent(modifierForward);
     addChildComponent(modifierPosition);
+    addChildComponent(modifierEquationResult);
     
     addChildComponent(patternViewport);
+    
     
     addAndMakeVisible(modifierSelect);
     addAndMakeVisible(modifierParameter);
@@ -383,6 +384,7 @@ void Modifier::hideAllControls() {
     modifierForward.setVisible(false);
     modifierEquation.setVisible(false);
     modifierEquationLabel.setVisible(false);
+    modifierEquationResult.setVisible(false);
     patternViewport.setVisible(false);
 
     // params
@@ -417,6 +419,7 @@ void Modifier::showEuclideanControls() {
     modifierPresetLabel.setVisible(true);
     modifierPresetMenu.setVisible(true);
     
+    modifierCyclePositionLabel.setText("Cycle position", juce::dontSendNotification);
     modifierCyclePositionLabel.setVisible(true);
     
     modifierPosition.setVisible(true);
@@ -433,7 +436,7 @@ void Modifier::showCustomControls() {
     pulseDuration.setActive(true);
     cycleLength.setActive(true);
     
-    
+    modifierCyclePositionLabel.setText("Cycle position", juce::dontSendNotification);
     modifierCyclePositionLabel.setVisible(true);
     
     modifierPosition.setVisible(true);
@@ -455,11 +458,16 @@ void Modifier::showEquationControls() {
     
     modifierEquation.setVisible(true);
     modifierEquationLabel.setVisible(true);
-        
+    
+    modifierCyclePositionLabel.setText("X variable value", juce::dontSendNotification);
+    modifierCyclePositionLabel.setVisible(true);
+    
     modifierPosition.setVisible(true);
     
     modifierBack.setVisible(true);
     modifierForward.setVisible(true);
+    
+    modifierEquationResult.setVisible(true);
 }
 
 void Modifier::paint(juce::Graphics& g) {
@@ -594,6 +602,8 @@ void Modifier::resized() {
     
     y += rowHeight;
     patternViewport.setBounds(x, y, columnWidth, 20 + patternViewport.getHorizontalScrollBar().getHeight());
+    
+    modifierEquationResult.setBounds(x, y, columnWidth, 20);
 }
 
 void Modifier::setInterval(double val) {
@@ -763,6 +773,8 @@ void Modifier::tickEquation(long roundedBeat, long prevBeat) {
             double newVal = parseEquation(modifierEquation.getText().toStdString());
             std::cout << newVal << std::endl;
             
+            juce::MessageManager::callAsync ([this, newVal] { modifierEquationResult.setText(std::to_string(newVal), juce::dontSendNotification); });
+            
             if((state == STATE_SAMPLE && isValidSample(selected))
             || (state == STATE_MODIFIER && isValidModifier(selected))) {
                 
@@ -872,23 +884,26 @@ std::string Modifier::toString() {
     output += "state " + std::to_string(state) + "\n";
     output += "selected " + std::to_string(selected) + "\n";
     output += "parameter " + std::to_string(parameterIndex) + "\n";
-    output += "interval " + std::to_string(randomInterval.getValue()) + "\n";
-    output += "min " + std::to_string(randomMin.getValue()) + "\n";
-    output += "max " + std::to_string(randomMax.getValue()) + "\n";
-    output += "step " + std::to_string(randomStep.getValue()) + "\n";
-    output += "cyclelength " + std::to_string(cycleLength.getValue()) + "\n";
-    output += "pulseduration " + std::to_string(pulseDuration.getValue()) + "\n";
-    output += "euclideanhits " + std::to_string(euclideanNumHits.getValue()) + "\n";
+    output += "interval " + randomInterval.getStrValue() + "\n";
+    output += "min " + randomMin.getStrValue() + "\n";
+    output += "max " + randomMax.getStrValue() + "\n";
+    output += "step " + randomStep.getStrValue() + "\n";
+    output += "cyclelength " + cycleLength.getStrValue() + "\n";
+    output += "pulseduration " + pulseDuration.getStrValue() + "\n";
+    output += "euclideanhits " + euclideanNumHits.getStrValue() + "\n";
     output += "equation " + equation + "\n";
     output += "}\n";
     return output;
 }
 
 double Modifier::parseEquation(std::string input) {
-    std::stack<double> st;
+    std::stack<double> st; // create stack
+    
+    // strip all brackets from input to let user use them for visibility
+    input.erase(std::remove(input.begin(), input.end(), '('), input.end());
+    input.erase(std::remove(input.begin(), input.end(), ')'), input.end());
     
     // split equation by space into tokens
-    
     std::string tmp;
     std::stringstream ss(input);
     std::vector<std::string> tokens;
@@ -902,10 +917,10 @@ double Modifier::parseEquation(std::string input) {
         
         // add numbers / variables to stack
         
-        bool isNumber = (tokens.at(i).find_first_not_of( "0123456789" ) == std::string::npos); // from https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int/37864920
+        bool isNumber = (tokens.at(i).find_first_not_of( "0123456789." ) == std::string::npos); // from https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int/37864920
         bool isVariable = (tokens.at(i).length() == 1) && (isupper(tokens.at(i).at(0)));
         
-        if(isNumber) st.push((double)std::stoi(tokens.at(i)));
+        if(isNumber) st.push(std::stod(tokens.at(i)));
         if(isVariable) st.push((double)patternPosition); // let all variables be euclideanPosition for now? haha
         
         

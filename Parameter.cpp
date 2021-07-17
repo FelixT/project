@@ -66,6 +66,10 @@ double Parameter::getValue() {
     return value;
 }
 
+std::string Parameter::getStrValue() {
+    return std::to_string(value);
+}
+
 double Parameter::getMin() {
     return min;
 }

@@ -17,6 +17,7 @@ public:
     void setTooltip(std::string tooltip);
     bool isChanged(); // whether this parameter has changed since we last checked
     double getValue();
+    std::string getStrValue();
     double getMin();
     double getMax();
     double getStep();
@@ -50,7 +51,11 @@ private:
     class ParamLabel : public juce::Label {
     private:
         void mouseDown(const juce::MouseEvent &event) override {
-            getParentComponent()->getParentComponent()->mouseDown(event); // it works (!)
+            if(!event.mods.isRightButtonDown()) {
+                getParentComponent()->getParentComponent()->mouseDown(event); // it works (!)
+            } else {
+                getParentComponent()->mouseDown(event);
+            }
         }
     };
     

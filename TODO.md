@@ -20,3 +20,4 @@
 19) Collapse modifiers
 20) Improve waveform visibility, especially playhead position
 21) Give samples + modifiers a minimum width and anything smaller than displays a horizontal scroll bar
+22) Perhaps in a similar vein to parameters, samples & modifiers could have 'actions' such as play/fire, next in cycle, etc

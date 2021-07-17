@@ -109,6 +109,8 @@ private:
     juce::TextButton modifierForward;
     juce::TextButton modifierBack;
     
+    juce::Label modifierEquationResult;
+    
     std::vector<euclideanPreset> euclideanPresets;
 
     std::string equation = "X";

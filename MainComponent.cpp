@@ -23,7 +23,7 @@ sineNoteLength("Sine note length (%)", "Proportion of each beat to play the sine
     curBeatLabel.setOpaque(true);
     curBeatLabel.setTooltip("Current beat count: click this to reset it to 0.");
     
-    playPauseButton.setButtonText(">");
+    playPauseButton.setButtonText("||");
     playPauseButton.onClick = [this] {
         paused = !paused;
         
